@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useProfileStore } from '../../store/useProfileStore.js';
 import { DEFAULT_PROFILE_DATA } from '../../data/defaultData.js';
+import ColoredBio from './ColoredBio.jsx';
 
 /**
  * Generates monogram initials fallback for broken/missing avatar images.
@@ -278,12 +279,10 @@ export default function ProfileHeader({ profile: propProfile, className = '' }) 
           </div>
 
           {/* ====================================================================
-              4. Bio Description (Defensive Wrap for T2.2 Extreme Lengths)
+              4. Bio Description (Defensive Wrap for T2.2 Extreme Lengths & Cyber IDE Syntax)
               ==================================================================== */}
           {profile.bio && (
-            <p className="text-sm sm:text-base text-theme-sub leading-relaxed max-w-3xl font-sans break-words whitespace-pre-line pt-1">
-              {profile.bio}
-            </p>
+            <ColoredBio bio={profile.bio} handle={profile.handle} />
           )}
 
           {/* ====================================================================

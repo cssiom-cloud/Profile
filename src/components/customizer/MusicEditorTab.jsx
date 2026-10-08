@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 
 export default function MusicEditorTab() {
-  const { music, updateMusic } = useProfileStore();
+  const { music, updateMusic, settings, updateSettings } = useProfileStore();
 
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const audioPreviewRef = useRef(null);
@@ -507,7 +507,7 @@ export default function MusicEditorTab() {
                   {audioFileInfo?.name || music?.title || 'Uploaded Audio Track'}
                 </p>
                 <p className="text-[10px] text-emerald-400 font-mono">
-                  Offline Audio File Active {audioFileInfo?.size ? `(${audioFileInfo.size})` : ''}
+                  ไฟล์เพลงพร้อมซิงค์ขึ้น Supabase Cloud เมื่อกดบันทึก (อุปกรณ์อื่นฟังได้) {audioFileInfo?.size ? `(${audioFileInfo.size})` : ''}
                 </p>
               </div>
             </div>
@@ -725,6 +725,32 @@ export default function MusicEditorTab() {
             <div
               className={`w-5 h-5 rounded-full bg-black shadow-md transition-transform ${
                 music?.isAutoPlay ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Welcome Audio Entrance Screen Toggle */}
+        <div className="flex items-center justify-between pt-2 border-t border-theme-glow/10">
+          <div className="min-w-0 pr-3">
+            <span className="font-bold text-white flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-theme-accent shrink-0" />
+              <span>Welcome Entrance Screen (หน้าต้อนรับโหลดเพลง):</span>
+            </span>
+            <p className="text-[10px] text-theme-sub mt-0.5">
+              หน้าต่างต้อนรับช่วยให้มือถือและอุปกรณ์อื่นเริ่มเล่นเพลงได้ 100% ตามนโยบาย Autoplay ของเบราว์เซอร์
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => updateSettings({ enableEnterScreen: !(settings?.enableEnterScreen ?? true) })}
+            className={`relative w-11 h-6 rounded-full transition-colors p-0.5 focus:outline-none shrink-0 ${
+              (settings?.enableEnterScreen ?? true) ? 'bg-theme-accent' : 'bg-gray-700'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-black shadow-md transition-transform ${
+                (settings?.enableEnterScreen ?? true) ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
           </button>

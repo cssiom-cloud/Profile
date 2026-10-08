@@ -27,6 +27,7 @@ import FavoritesSection from './components/links/FavoritesSection.jsx';
 import SocialHub from './components/profile/SocialHub.jsx';
 import LiveCustomizerDrawer from './components/customizer/LiveCustomizerDrawer.jsx';
 import LoginModal from './components/customizer/LoginModal.jsx';
+import SitePreloader from './components/ui/SitePreloader.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 import {
   SlidersHorizontal,
@@ -59,6 +60,15 @@ export default function App() {
 
   const [consoleErrorCount, setConsoleErrorCount] = useState(0);
   const [mutateTestResult, setMutateTestResult] = useState('');
+  const [showPreloader, setShowPreloader] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') return false;
+    try {
+      return sessionStorage.getItem('has_entered_profile') !== 'true';
+    } catch {
+      return true;
+    }
+  });
 
   // Intercept and track console errors for smoke test assertions
   useEffect(() => {
@@ -206,6 +216,9 @@ export default function App() {
       <ErrorBoundary>
         <LoginModal />
         <LiveCustomizerDrawer />
+        {showPreloader && settings?.enableEnterScreen !== false && (
+          <SitePreloader onEnter={() => setShowPreloader(false)} />
+        )}
       </ErrorBoundary>
 
       {/* 5. Floating Owner Controls (ปรากฏเฉพาะเมื่อ isOwner === true) */}

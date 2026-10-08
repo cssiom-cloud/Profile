@@ -408,6 +408,18 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
     }
   }, [isPlaying, playableSrc, music.audioUrl, isLocalDeviceOnly]);
 
+  // Remote play trigger (e.g. from SitePreloader entrance screen)
+  useEffect(() => {
+    const handleRemotePlay = () => {
+      const audio = audioRef.current;
+      if (audio && !isPlaying) {
+        togglePlay();
+      }
+    };
+    window.addEventListener('play-profile-audio', handleRemotePlay);
+    return () => window.removeEventListener('play-profile-audio', handleRemotePlay);
+  }, [isPlaying, togglePlay]);
+
   const handleSeekChange = (e) => {
     const val = parseFloat(e.target.value);
     if (Number.isFinite(val) && val >= 0) {

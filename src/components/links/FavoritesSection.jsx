@@ -17,7 +17,9 @@ import {
   Music,
   Palette,
   ExternalLink,
+  Maximize2,
 } from 'lucide-react';
+import FavoriteDetailModal from './FavoriteDetailModal.jsx';
 
 /**
  * Canonical category configurations with theme accent tokens
@@ -69,6 +71,7 @@ export const CATEGORY_META = {
 
 export default function FavoritesSection({ favorites: propFavorites, className = '' }) {
   const storeFavorites = useProfileStore((state) => state.favorites);
+  const settings = useProfileStore((state) => state.settings);
   const favorites = Array.isArray(propFavorites)
     ? propFavorites
     : Array.isArray(storeFavorites)
@@ -76,6 +79,9 @@ export default function FavoritesSection({ favorites: propFavorites, className =
     : [];
 
   const [activeCategory, setActiveCategory] = useState('all');
+  const [selectedFavorite, setSelectedFavorite] = useState(null);
+
+  const sectionBannerUrl = settings?.favoritesBannerUrl;
 
   // Compute available categories from data
   const availableCategories = useMemo(() => {
@@ -111,6 +117,24 @@ export default function FavoritesSection({ favorites: propFavorites, className =
       aria-label="Favorites & Interests"
       className={`w-full space-y-4 ${className}`}
     >
+      {/* Optional Section Header Banner */}
+      {sectionBannerUrl && (
+        <div className="relative w-full h-28 sm:h-36 rounded-2xl overflow-hidden border border-theme-glow/30 shadow-glow mb-2">
+          <img
+            src={sectionBannerUrl}
+            alt="Interests Collection Banner"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+          <div className="absolute bottom-3 left-4 flex items-center gap-2 text-white">
+            <Heart className="w-4 h-4 text-theme-accent fill-theme-accent/30" />
+            <span className="font-bold text-sm font-sans drop-shadow-md">
+              Interests & Favorites Collection
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header and Category Filter Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
         <div className="flex items-center gap-2">
@@ -182,11 +206,25 @@ export default function FavoritesSection({ favorites: propFavorites, className =
             return (
               <div
                 key={item.id}
-                className="group relative p-4 rounded-2xl backdrop-blur-md bg-theme-surface/60 border border-theme-glow/30 hover:border-theme-accent/60 hover:shadow-glow transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+                onClick={() => setSelectedFavorite(item)}
+                className="group relative p-4 rounded-2xl backdrop-blur-md bg-theme-surface/60 border border-theme-glow/30 hover:border-theme-accent/60 hover:shadow-glow transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between cursor-pointer select-none overflow-hidden"
+                title="คลิกเพื่อขยายอ่านรายละเอียดทั้งหมด"
               >
+                {/* Optional Top Card Banner */}
+                {item.bannerUrl && (
+                  <div className="relative h-20 -mx-4 -mt-4 mb-3 overflow-hidden bg-black/40">
+                    <img
+                      src={item.bannerUrl}
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-theme-surface/90 via-transparent to-transparent" />
+                  </div>
+                )}
+
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="p-2 rounded-xl bg-theme-base/80 text-theme-accent border border-theme-glow/30 group-hover:scale-110 transition-transform flex items-center justify-center w-9 h-9">
+                    <div className="p-2 rounded-xl bg-theme-base/80 text-theme-accent border border-theme-glow/30 group-hover:scale-110 transition-transform flex items-center justify-center w-9 h-9 shrink-0">
                       {isImage ? (
                         <img
                           src={item.iconOrImage}
@@ -205,8 +243,9 @@ export default function FavoritesSection({ favorites: propFavorites, className =
                   </div>
 
                   <div>
-                    <h3 className="font-sans font-bold text-sm text-theme-main group-hover:text-theme-accent transition-colors">
-                      {item.title}
+                    <h3 className="font-sans font-bold text-sm text-theme-main group-hover:text-theme-accent transition-colors flex items-center justify-between gap-1">
+                      <span className="truncate">{item.title}</span>
+                      <Maximize2 className="w-3 h-3 text-theme-sub opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                     </h3>
                     {item.subtitle && (
                       <p className="text-xs font-mono text-theme-sub mt-0.5 line-clamp-2">
@@ -222,14 +261,22 @@ export default function FavoritesSection({ favorites: propFavorites, className =
                     {item.category}
                   </span>
                   <span className="text-theme-accent opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    <Star className="w-3 h-3 fill-current" />
-                    <span>Favorite</span>
+                    <Maximize2 className="w-3 h-3" />
+                    <span>Read More</span>
                   </span>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {/* Expanded Detail Modal */}
+      {selectedFavorite && (
+        <FavoriteDetailModal
+          item={selectedFavorite}
+          onClose={() => setSelectedFavorite(null)}
+        />
       )}
     </section>
   );

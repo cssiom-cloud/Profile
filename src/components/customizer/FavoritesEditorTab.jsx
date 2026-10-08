@@ -4,9 +4,11 @@
  *
  * Requirements:
  * - Manage favorite interest items across categories (tech, gaming, anime, music, hobbies)
+ * - Section Header Banner upload & configuration (favoritesBannerUrl)
+ * - Individual Card Banner upload & configuration (bannerUrl)
  * - Category filter tabs with counts
- * - Add new favorite items
- * - Edit existing favorites (title, subtitle, category, badge, iconOrImage)
+ * - Add new favorite items with rich notes, card banners, external links
+ * - Edit existing favorites (title, subtitle/lore, category, badge, iconOrImage, bannerUrl, linkUrl)
  * - Reorder favorites (Move Up / Down)
  * - Delete favorite items
  */
@@ -36,6 +38,8 @@ import {
   Upload,
   Crop,
   Image as ImageIcon,
+  ExternalLink,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { FAVORITE_CATEGORIES } from '../../data/defaultData.js';
 
@@ -70,8 +74,15 @@ function DynamicFavIcon({ name, className = 'w-3.5 h-3.5' }) {
 }
 
 export default function FavoritesEditorTab() {
-  const { favorites, addFavorite, updateFavorite, removeFavorite, reorderFavorites } =
-    useProfileStore();
+  const {
+    favorites,
+    addFavorite,
+    updateFavorite,
+    removeFavorite,
+    reorderFavorites,
+    settings,
+    updateSettings,
+  } = useProfileStore();
 
   // Active category filter: 'all' or specific category
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -82,17 +93,22 @@ export default function FavoritesEditorTab() {
   const [category, setCategory] = useState('tech');
   const [badge, setBadge] = useState('');
   const [iconOrImage, setIconOrImage] = useState('Star');
+  const [bannerUrl, setBannerUrl] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
 
   // Cropper Modal State
   const [cropModal, setCropModal] = useState({
     isOpen: false,
     initialSrc: '',
     onCropSuccess: null,
-    title: 'Crop Favorite Item Image (1:1 / 16:9)',
+    title: 'Crop Image',
   });
 
+  const sectionBannerFileRef = useRef(null);
   const addFileInputRef = useRef(null);
+  const addBannerFileRef = useRef(null);
   const editFileInputRef = useRef(null);
+  const editBannerFileRef = useRef(null);
   const activeEditingTargetRef = useRef(null);
 
   // Expanded favorite item for editing
@@ -108,12 +124,16 @@ export default function FavoritesEditorTab() {
       category,
       badge: badge.trim(),
       iconOrImage: iconOrImage || 'Star',
+      bannerUrl: bannerUrl.trim() || undefined,
+      linkUrl: linkUrl.trim() || undefined,
     });
 
     setTitle('');
     setSubtitle('');
     setBadge('');
     setIconOrImage('Star');
+    setBannerUrl('');
+    setLinkUrl('');
   };
 
   const moveUp = (favId) => {
@@ -142,6 +162,76 @@ export default function FavoritesEditorTab() {
 
   return (
     <div className="space-y-6 font-mono text-xs">
+      {/* 0. Section Header Banner Configuration */}
+      <div className="p-3.5 rounded-2xl bg-black/40 border border-theme-glow/30 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+            <Layers className="w-3.5 h-3.5 text-theme-accent" />
+            <span>Favorites Section Banner (แบนเนอร์หัวข้อส่วนนี้):</span>
+          </label>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => sectionBannerFileRef.current?.click()}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-theme-surface border border-theme-glow/30 hover:border-theme-accent text-theme-accent hover:text-white transition-all text-[10px]"
+              title="Upload section banner image"
+            >
+              <Upload className="w-3 h-3" />
+              <span>Upload Local</span>
+            </button>
+            {settings?.favoritesBannerUrl && (
+              <button
+                type="button"
+                onClick={() => updateSettings({ favoritesBannerUrl: '' })}
+                className="text-[10px] text-red-400 hover:underline px-1.5 py-0.5 rounded bg-red-500/10"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        <input
+          ref={sectionBannerFileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              setCropModal({
+                isOpen: true,
+                initialSrc: event.target.result,
+                onCropSuccess: (dataUrl) => updateSettings({ favoritesBannerUrl: dataUrl }),
+                title: 'Crop Section Header Banner (3:1 / 16:9)',
+              });
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+          }}
+        />
+
+        <input
+          type="url"
+          value={settings?.favoritesBannerUrl || ''}
+          onChange={(e) => updateSettings({ favoritesBannerUrl: e.target.value })}
+          placeholder="https://images.unsplash.com/... or upload section banner above"
+          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
+        />
+
+        {settings?.favoritesBannerUrl && (
+          <div className="relative h-20 rounded-xl overflow-hidden border border-theme-glow/20">
+            <img
+              src={settings.favoritesBannerUrl}
+              alt="Section Banner Preview"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+      </div>
+
       {/* 1. Category Filter Navigation Bar */}
       <div className="space-y-1.5">
         <label className="text-theme-sub text-[11px] font-bold">Filter By Category:</label>
@@ -193,19 +283,80 @@ export default function FavoritesEditorTab() {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Elden Ring or React"
+            placeholder="e.g. Elden Ring or Roblox"
             className="w-full px-3 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-theme-sub">Subtitle / Notes:</label>
-          <input
-            type="text"
+          <label className="text-theme-sub">Subtitle / Full Description Notes:</label>
+          <textarea
+            rows={2}
             value={subtitle}
             onChange={(e) => setSubtitle(e.target.value)}
-            placeholder="e.g. FromSoftware Masterpiece"
-            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent"
+            placeholder="Write full details, lore, review or descriptions (supports multiline)..."
+            className="w-full px-3 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent resize-none leading-relaxed"
+          />
+        </div>
+
+        {/* Card Banner Image */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <label className="text-theme-sub flex items-center gap-1 font-bold">
+              <ImageIcon className="w-3.5 h-3.5 text-theme-accent" />
+              <span>Card Banner Image (แบนเนอร์การ์ด):</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => addBannerFileRef.current?.click()}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-theme-surface border border-theme-glow/30 hover:border-theme-accent text-theme-accent hover:text-white transition-all text-[10px]"
+            >
+              <Upload className="w-2.5 h-2.5" />
+              <span>Upload Banner</span>
+            </button>
+          </div>
+          <input
+            ref={addBannerFileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                setCropModal({
+                  isOpen: true,
+                  initialSrc: event.target.result,
+                  onCropSuccess: (dataUrl) => setBannerUrl(dataUrl),
+                  title: 'Crop Card Banner Image (16:9 / 3:1)',
+                });
+              };
+              reader.readAsDataURL(file);
+              e.target.value = '';
+            }}
+          />
+          <input
+            type="url"
+            value={bannerUrl}
+            onChange={(e) => setBannerUrl(e.target.value)}
+            placeholder="https://images.unsplash.com/... or upload banner pic above"
+            className="w-full px-3 py-1.5 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
+          />
+        </div>
+
+        {/* External Link */}
+        <div className="space-y-1">
+          <label className="text-theme-sub flex items-center gap-1">
+            <LinkIcon className="w-3 h-3 text-theme-accent" />
+            <span>Link URL (Optional external link):</span>
+          </label>
+          <input
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            placeholder="https://www.roblox.com/... or project link"
+            className="w-full px-3 py-1.5 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
           />
         </div>
 
@@ -278,7 +429,7 @@ export default function FavoritesEditorTab() {
             {iconOrImage && (iconOrImage.startsWith('data:') || iconOrImage.startsWith('http')) ? (
               <div className="flex items-center gap-2 p-1.5 rounded-xl bg-black/60 border border-theme-accent/40">
                 <img src={iconOrImage} alt="Preview" className="w-6 h-6 rounded object-cover" />
-                <span className="text-[10px] text-emerald-400 flex-1 truncate">Custom Cropped Pic</span>
+                <span className="text-[10px] text-emerald-400 flex-1 truncate">Custom Pic</span>
                 <button
                   type="button"
                   onClick={() => setIconOrImage('Star')}
@@ -416,12 +567,56 @@ export default function FavoritesEditorTab() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] text-theme-sub">Subtitle:</label>
-                    <input
-                      type="text"
+                    <label className="text-[10px] text-theme-sub">Subtitle / Full Description Notes:</label>
+                    <textarea
+                      rows={2}
                       value={fav.subtitle || ''}
                       onChange={(e) => updateFavorite(fav.id, { subtitle: e.target.value })}
-                      className="w-full px-2 py-1.5 rounded-lg bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent"
+                      placeholder="Write full description (multiline)..."
+                      className="w-full px-2 py-1.5 rounded-lg bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent resize-none leading-relaxed"
+                    />
+                  </div>
+
+                  {/* Edit Card Banner Image */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-theme-sub flex items-center gap-1 font-bold">
+                        <ImageIcon className="w-3 h-3 text-theme-accent" />
+                        <span>Card Banner Image:</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          activeEditingTargetRef.current = fav.id;
+                          editBannerFileRef.current?.click();
+                        }}
+                        className="text-[10px] text-theme-accent hover:underline flex items-center gap-0.5"
+                      >
+                        <Upload className="w-2.5 h-2.5" />
+                        <span>Upload Banner</span>
+                      </button>
+                    </div>
+                    <input
+                      type="url"
+                      value={fav.bannerUrl || ''}
+                      onChange={(e) => updateFavorite(fav.id, { bannerUrl: e.target.value })}
+                      placeholder="https://... or upload banner image"
+                      className="w-full px-2 py-1.5 rounded-lg bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
+                    />
+                  </div>
+
+                  {/* Edit Link URL */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-theme-sub flex items-center gap-1">
+                      <LinkIcon className="w-2.5 h-2.5 text-theme-accent" />
+                      <span>Link URL:</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={fav.linkUrl || ''}
+                      onChange={(e) => updateFavorite(fav.id, { linkUrl: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full px-2 py-1.5 rounded-lg bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
                     />
                   </div>
 
@@ -501,7 +696,7 @@ export default function FavoritesEditorTab() {
         })}
       </div>
 
-      {/* Hidden File Input for Edit Form */}
+      {/* Hidden File Input for Card Picture */}
       <input
         ref={editFileInputRef}
         type="file"
@@ -520,7 +715,34 @@ export default function FavoritesEditorTab() {
               onCropSuccess: (dataUrl) => {
                 updateFavorite(targetFavId, { iconOrImage: dataUrl });
               },
-              title: 'Crop Favorite Item Picture',
+              title: 'Crop Favorite Item Picture (1:1)',
+            });
+          };
+          reader.readAsDataURL(file);
+          e.target.value = '';
+        }}
+      />
+
+      {/* Hidden File Input for Card Banner */}
+      <input
+        ref={editBannerFileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          const targetFavId = activeEditingTargetRef.current;
+          if (!file || !targetFavId) return;
+
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setCropModal({
+              isOpen: true,
+              initialSrc: event.target.result,
+              onCropSuccess: (dataUrl) => {
+                updateFavorite(targetFavId, { bannerUrl: dataUrl });
+              },
+              title: 'Crop Favorite Card Banner (16:9 / 3:1)',
             });
           };
           reader.readAsDataURL(file);
@@ -539,7 +761,7 @@ export default function FavoritesEditorTab() {
         }}
         initialImageSrc={cropModal.initialSrc}
         title={cropModal.title}
-        defaultAspect="1:1"
+        defaultAspect="16:9"
         circularGuide={false}
       />
     </div>

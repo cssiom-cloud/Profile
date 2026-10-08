@@ -30,6 +30,7 @@ import {
   FileText,
 } from 'lucide-react';
 import ImageCropModal from '../ui/ImageCropModal.jsx';
+import ColoredBio from '../profile/ColoredBio.jsx';
 
 export default function ProfileEditorTab() {
   const { profile, updateProfile } = useProfileStore();
@@ -354,19 +355,115 @@ export default function ProfileEditorTab() {
         />
       </div>
 
-      {/* 6. Bio Description */}
-      <div className="space-y-1.5">
-        <label className="text-theme-sub flex items-center gap-1.5 font-bold">
-          <AlignLeft className="w-3.5 h-3.5 text-theme-primary" />
-          <span>Bio Description:</span>
-        </label>
+      {/* 6. Bio Description with Colorful Syntax Highlighting & BBCode Tags */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+            <AlignLeft className="w-3.5 h-3.5 text-theme-primary" />
+            <span>Bio Description (ข้อความแนะนำตัว / โค้ด):</span>
+          </label>
+          <span className="text-[10px] text-theme-accent font-mono">
+            Cyber IDE & Colors Ready
+          </span>
+        </div>
+
+        {/* Quick Color & Format Action Tags Toolbar */}
+        <div className="flex items-center gap-1.5 flex-wrap p-2 rounded-xl bg-black/60 border border-theme-glow/20 text-[10px]">
+          <span className="text-theme-sub mr-1">Insert:</span>
+
+          <button
+            type="button"
+            onClick={() => handleChange('bio', `${profile?.bio || ''}[cyan]ข้อความ[/cyan]`)}
+            className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 transition-all font-semibold cursor-pointer"
+            title="Cyan neon glow"
+          >
+            [cyan]
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleChange('bio', `${profile?.bio || ''}[pink]ข้อความ[/pink]`)}
+            className="px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 border border-pink-500/40 hover:bg-pink-500/30 transition-all font-semibold cursor-pointer"
+            title="Pink neon glow"
+          >
+            [pink]
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleChange('bio', `${profile?.bio || ''}[gradient]ข้อความ[/gradient]`)}
+            className="px-2 py-0.5 rounded-md bg-gradient-to-r from-theme-primary to-theme-secondary text-black font-bold hover:brightness-110 transition-all cursor-pointer"
+            title="Rainbow neon gradient"
+          >
+            [gradient]
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleChange('bio', `${profile?.bio || ''}[emerald]ข้อความ[/emerald]`)}
+            className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all cursor-pointer"
+            title="Emerald green glow"
+          >
+            [emerald]
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleChange('bio', `${profile?.bio || ''}[gold]ข้อความ[/gold]`)}
+            className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all cursor-pointer"
+            title="Gold amber glow"
+          >
+            [gold]
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleChange('bio', `${profile?.bio || ''}**หนา**`)}
+            className="px-2 py-0.5 rounded-md bg-white/10 text-white hover:bg-white/20 transition-all font-bold cursor-pointer"
+            title="Bold text"
+          >
+            **หนา**
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleChange('bio', `${profile?.bio || ''}\`code\``)}
+            className="px-2 py-0.5 rounded-md bg-white/10 text-theme-primary hover:bg-white/20 transition-all font-mono cursor-pointer"
+            title="Inline code badge"
+          >
+            `code`
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const codeTemplate = `Maiddress = {\n  "age": 0,\n  "gender": "Idc",\n  "mbti": ["INTJ", "INTP"],\n  "skills": ["Law", "WebDev", "Lua"],\n  "likes": ["Book", "Quiet", "Code"],\n  "timezone": "Asia/Bangkok"\n}`;
+              handleChange('bio', codeTemplate);
+            }}
+            className="px-2 py-0.5 rounded-md bg-theme-primary/20 text-theme-primary border border-theme-primary/40 hover:bg-theme-primary/30 transition-all font-mono font-bold cursor-pointer"
+            title="Insert Cyber IDE Code / Object Template"
+          >
+            &#123; &#125; Code Template
+          </button>
+        </div>
+
         <textarea
-          rows={3}
+          rows={6}
           value={profile?.bio || ''}
           onChange={(e) => handleChange('bio', e.target.value)}
           placeholder="Crafting digital realities with code, sound, and interactive canvas aesthetics..."
-          className="w-full px-3 py-2 rounded-xl bg-black/50 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary resize-none transition-all leading-relaxed"
+          className="w-full px-3 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary resize-y transition-all leading-relaxed font-mono text-xs"
         />
+
+        {/* Live Colored Bio Preview Box */}
+        {profile?.bio && (
+          <div className="space-y-1 pt-1">
+            <span className="text-[10px] text-theme-sub font-mono">Live Bio Render Preview:</span>
+            <div className="p-3 rounded-2xl bg-black/40 border border-theme-glow/20">
+              <ColoredBio bio={profile.bio} handle={profile.handle} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 7. Personal Quote */}

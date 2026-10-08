@@ -312,15 +312,23 @@ export const dataProvider = {
                 }))
               : deepClone(DEFAULT_PROFILE_DATA.links),
             favorites: (favsRes.data && favsRes.data.length > 0)
-              ? favsRes.data.map((f) => ({
-                  id: f.id,
-                  category: f.category || 'tech',
-                  title: f.title,
-                  subtitle: f.subtitle || undefined,
-                  iconOrImage: f.icon_or_image || undefined,
-                  badge: f.badge || undefined,
-                  order: f.sort_order ?? 0,
-                }))
+              ? favsRes.data.map((f) => {
+                  const metaList = Array.isArray(settingsRes.data?.custom_css_or_config?.favoritesMeta)
+                    ? settingsRes.data.custom_css_or_config.favoritesMeta
+                    : [];
+                  const foundMeta = metaList.find((m) => m && m.id === f.id);
+                  return {
+                    id: f.id,
+                    category: f.category || 'tech',
+                    title: f.title,
+                    subtitle: f.subtitle || undefined,
+                    iconOrImage: f.icon_or_image || undefined,
+                    badge: f.badge || undefined,
+                    bannerUrl: foundMeta?.bannerUrl || undefined,
+                    linkUrl: foundMeta?.linkUrl || undefined,
+                    order: f.sort_order ?? 0,
+                  };
+                })
               : deepClone(DEFAULT_PROFILE_DATA.favorites),
             music: {
               title: settingsRes.data?.music_title || DEFAULT_PROFILE_DATA.music.title,
@@ -338,6 +346,8 @@ export const dataProvider = {
               cardStyle: settingsRes.data?.card_style || DEFAULT_PROFILE_DATA.settings.cardStyle,
               particleDensity: settingsRes.data?.particle_density || DEFAULT_PROFILE_DATA.settings.particleDensity,
               customColors: settingsRes.data?.custom_css_or_config?.customColors || DEFAULT_PROFILE_DATA.settings.customColors,
+              favoritesBannerUrl: settingsRes.data?.custom_css_or_config?.favoritesBannerUrl || undefined,
+              enableEnterScreen: settingsRes.data?.custom_css_or_config?.enableEnterScreen ?? true,
             },
           };
 
@@ -553,13 +563,19 @@ export const dataProvider = {
               try {
                 const key = cloudAudioUrl.replace('indexeddb://', '') || 'custom_audio_file';
                 const storedBase64 = await mediaStorage.getItem(key);
-                if (storedBase64 && typeof storedBase64 === 'string' && storedBase64.length <= 6 * 1024 * 1024) {
+                if (storedBase64 && typeof storedBase64 === 'string' && storedBase64.length <= 16 * 1024 * 1024) {
                   cloudAudioUrl = storedBase64;
                 }
               } catch (readErr) {
                 console.warn('[DataProvider] Failed reading audio for Supabase sync:', readErr);
               }
             }
+
+            const favoritesMeta = (lightweight.favorites || []).map((fav) => ({
+              id: fav.id,
+              bannerUrl: fav.bannerUrl || null,
+              linkUrl: fav.linkUrl || null,
+            }));
 
             const { error: setErr } = await supabase.from('site_settings').upsert({
               profile_id: profileId,
@@ -577,11 +593,14 @@ export const dataProvider = {
                 isAutoPlay: lightweight.music.isAutoPlay ?? false,
                 defaultVolume: lightweight.music.defaultVolume ?? 0.7,
                 customColors: lightweight.settings.customColors || null,
+                favoritesBannerUrl: lightweight.settings.favoritesBannerUrl || null,
+                favoritesMeta,
+                enableEnterScreen: lightweight.settings.enableEnterScreen ?? true,
               },
             }, { onConflict: 'profile_id' });
             if (setErr) throw setErr;
           }
-        })(), 4000);
+        })(), cloudAudioUrl && cloudAudioUrl.length > 50000 ? 35000 : 8000);
 
         return {
           success: true,
