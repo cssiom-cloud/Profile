@@ -288,10 +288,20 @@ export default function LiveCustomizerDrawer() {
                   <button
                     type="button"
                     onClick={() => setCustomizerOpen(false)}
-                    className="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 text-[10px] font-bold cursor-pointer"
+                    className="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 text-[10px] font-bold cursor-pointer shrink-0"
                     title="Close drawer to interact with site"
                   >
-                    View Site &rarr;
+                    View Site (ดูเว็บ) &rarr;
+                  </button>
+                )}
+                {toast.type === 'error' && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomizerOpen(false)}
+                    className="px-2 py-0.5 rounded bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/40 text-[10px] font-bold cursor-pointer shrink-0"
+                    title="Close drawer to view site"
+                  >
+                    Close (ปิด) &rarr;
                   </button>
                 )}
                 <button

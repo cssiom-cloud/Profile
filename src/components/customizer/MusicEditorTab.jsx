@@ -14,6 +14,7 @@
 import React, { useState, useRef } from 'react';
 import { useProfileStore } from '../../store/useProfileStore.js';
 import ImageCropModal from '../ui/ImageCropModal.jsx';
+import { mediaStorage } from '../../lib/mediaStorage.js';
 import {
   Music,
   Disc,
@@ -61,20 +62,26 @@ export default function MusicEditorTab() {
   };
 
   // Test audio playback toggle
-  const handleTestAudioToggle = () => {
-    if (!music?.audioUrl) return;
+  const handleTestAudioToggle = async () => {
+    let sourceUrl = music?.audioUrl;
+    if (!sourceUrl) return;
+
+    if (sourceUrl.startsWith('indexeddb://')) {
+      const resolved = await mediaStorage.getItem('custom_audio_file');
+      if (resolved) sourceUrl = resolved;
+    }
 
     if (!audioPreviewRef.current) {
-      audioPreviewRef.current = new Audio(music.audioUrl);
+      audioPreviewRef.current = new Audio(sourceUrl);
       audioPreviewRef.current.volume = music?.defaultVolume ?? 0.7;
       audioPreviewRef.current.onended = () => setIsPlayingTest(false);
       audioPreviewRef.current.onerror = () => {
         setIsPlayingTest(false);
-        alert('Failed to stream audio from URL: ' + music.audioUrl);
+        alert('Failed to stream audio: ' + (sourceUrl.length > 50 ? sourceUrl.slice(0, 50) + '...' : sourceUrl));
       };
     } else {
-      if (audioPreviewRef.current.src !== music.audioUrl) {
-        audioPreviewRef.current.src = music.audioUrl;
+      if (audioPreviewRef.current.src !== sourceUrl) {
+        audioPreviewRef.current.src = sourceUrl;
       }
     }
 
@@ -117,8 +124,16 @@ export default function MusicEditorTab() {
     });
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const audioDataUrl = event.target.result;
+
+      // Pre-cache to high-capacity IndexedDB immediately
+      try {
+        await mediaStorage.setItem('custom_audio_file', audioDataUrl);
+      } catch (err) {
+        console.warn('Failed pre-caching audio to mediaStorage:', err);
+      }
+
       handleChange('audioUrl', audioDataUrl);
 
       // Auto-suggest title from filename if title is default or empty

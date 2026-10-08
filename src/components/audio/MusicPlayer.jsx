@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useProfileStore } from '../../store/useProfileStore.js';
 import { DEFAULT_PROFILE_DATA } from '../../data/defaultData.js';
+import { mediaStorage } from '../../lib/mediaStorage.js';
 import SoundwaveVisualizer from './SoundwaveVisualizer.jsx';
 
 /**
@@ -100,24 +101,47 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
   // Lifecycle: Synchronize track changes from Live Customizer
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    let isCancelled = false;
 
-    if (music.audioUrl !== currentAudioUrl.current) {
-      currentAudioUrl.current = music.audioUrl;
-      setAudioError(null);
-      setCurrentTime(0);
-      setDuration(0);
-      audio.src = music.audioUrl;
-      audio.load();
+    const syncAudioTrack = async () => {
+      const audio = audioRef.current;
+      if (!audio) return;
 
-      if (isPlaying) {
-        audio.play().catch((err) => {
-          console.warn('[MusicPlayer] Auto-play on track URL change prevented:', err);
-          setIsPlaying(false);
-        });
+      let targetUrl = music.audioUrl;
+      if (targetUrl && targetUrl.startsWith('indexeddb://')) {
+        const key = targetUrl.replace('indexeddb://', '') || 'custom_audio_file';
+        const stored = await mediaStorage.getItem(key);
+        if (stored) {
+          targetUrl = stored;
+        } else {
+          targetUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
+        }
       }
-    }
+
+      if (isCancelled) return;
+
+      if (targetUrl !== currentAudioUrl.current) {
+        currentAudioUrl.current = targetUrl;
+        setAudioError(null);
+        setCurrentTime(0);
+        setDuration(0);
+        audio.src = targetUrl;
+        audio.load();
+
+        if (isPlaying) {
+          audio.play().catch((err) => {
+            console.warn('[MusicPlayer] Auto-play on track URL change prevented:', err);
+            setIsPlaying(false);
+          });
+        }
+      }
+    };
+
+    syncAudioTrack();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [music.audioUrl, isPlaying]);
 
   // Synchronize volume in real-time when music.defaultVolume updates in store

@@ -5,6 +5,7 @@
  */
 import { isSupabaseConfigured, supabase } from './supabase.js';
 import { DEFAULT_PROFILE_DATA } from '../data/defaultData.js';
+import { mediaStorage } from './mediaStorage.js';
 
 export const LOCAL_STORAGE_KEY = 'profile_hub_local_storage_v1';
 
@@ -91,6 +92,130 @@ export const dataProvider = {
       music: normalizedMusic,
       settings: normalizedSettings,
     };
+  },
+
+  /**
+   * Offloads multi-megabyte media strings (e.g. uploaded base64 audio, high-res covers)
+   * into IndexedDB so localStorage (<5MB total quota) and Supabase REST requests (<2MB body)
+   * remain fast, lightweight, and quota-safe.
+   */
+  async offloadLargeMedia(payload) {
+    const clone = deepClone(payload);
+
+    // 1. Offload audio if large base64 or custom audio (>64KB)
+    if (clone.music && typeof clone.music.audioUrl === 'string') {
+      const audio = clone.music.audioUrl;
+      if (audio.startsWith('data:audio') || audio.startsWith('blob:') || audio.length > 64 * 1024) {
+        try {
+          await mediaStorage.setItem('custom_audio_file', audio);
+          clone.music.audioUrl = 'indexeddb://custom_audio_file';
+        } catch (err) {
+          console.warn('[DataProvider] Failed to offload audio to IndexedDB:', err);
+        }
+      }
+    }
+
+    // 2. Offload custom music cover if large base64 (>150KB)
+    if (clone.music && typeof clone.music.coverUrl === 'string') {
+      const cover = clone.music.coverUrl;
+      if (cover.startsWith('data:image') && cover.length > 150 * 1024) {
+        try {
+          await mediaStorage.setItem('custom_music_cover', cover);
+          clone.music.coverUrl = 'indexeddb://custom_music_cover';
+        } catch (err) {
+          console.warn('[DataProvider] Failed to offload music cover to IndexedDB:', err);
+        }
+      }
+    }
+
+    // 3. Offload custom profile avatar if large base64 (>150KB)
+    if (clone.profile && typeof clone.profile.avatarUrl === 'string') {
+      const avatar = clone.profile.avatarUrl;
+      if (avatar.startsWith('data:image') && avatar.length > 150 * 1024) {
+        try {
+          await mediaStorage.setItem('custom_avatar_url', avatar);
+          clone.profile.avatarUrl = 'indexeddb://custom_avatar_url';
+        } catch (err) {
+          console.warn('[DataProvider] Failed to offload avatar to IndexedDB:', err);
+        }
+      }
+    }
+
+    // 4. Offload custom banner if large base64 (>250KB)
+    if (clone.profile && typeof clone.profile.bannerUrl === 'string') {
+      const banner = clone.profile.bannerUrl;
+      if (banner.startsWith('data:image') && banner.length > 250 * 1024) {
+        try {
+          await mediaStorage.setItem('custom_banner_url', banner);
+          clone.profile.bannerUrl = 'indexeddb://custom_banner_url';
+        } catch (err) {
+          console.warn('[DataProvider] Failed to offload banner to IndexedDB:', err);
+        }
+      }
+    }
+
+    return clone;
+  },
+
+  /**
+   * Rehydrates indexeddb:// URI pointers back to their full media data from IndexedDB
+   */
+  async restoreMediaFromIndexedDB(payload) {
+    if (!payload || typeof payload !== 'object') return payload;
+
+    // Restore audio
+    if (payload.music && typeof payload.music.audioUrl === 'string' && payload.music.audioUrl.startsWith('indexeddb://')) {
+      const key = payload.music.audioUrl.replace('indexeddb://', '') || 'custom_audio_file';
+      try {
+        const stored = await mediaStorage.getItem(key);
+        if (stored) {
+          payload.music.audioUrl = stored;
+        } else {
+          payload.music.audioUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
+        }
+      } catch (err) {
+        console.warn('[DataProvider] Failed to restore audio from IndexedDB:', err);
+        payload.music.audioUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
+      }
+    }
+
+    // Restore music cover
+    if (payload.music && typeof payload.music.coverUrl === 'string' && payload.music.coverUrl.startsWith('indexeddb://')) {
+      const key = payload.music.coverUrl.replace('indexeddb://', '') || 'custom_music_cover';
+      try {
+        const stored = await mediaStorage.getItem(key);
+        if (stored) payload.music.coverUrl = stored;
+        else payload.music.coverUrl = DEFAULT_PROFILE_DATA.music.coverUrl;
+      } catch {
+        payload.music.coverUrl = DEFAULT_PROFILE_DATA.music.coverUrl;
+      }
+    }
+
+    // Restore avatar
+    if (payload.profile && typeof payload.profile.avatarUrl === 'string' && payload.profile.avatarUrl.startsWith('indexeddb://')) {
+      const key = payload.profile.avatarUrl.replace('indexeddb://', '') || 'custom_avatar_url';
+      try {
+        const stored = await mediaStorage.getItem(key);
+        if (stored) payload.profile.avatarUrl = stored;
+        else payload.profile.avatarUrl = DEFAULT_PROFILE_DATA.profile.avatarUrl;
+      } catch {
+        payload.profile.avatarUrl = DEFAULT_PROFILE_DATA.profile.avatarUrl;
+      }
+    }
+
+    // Restore banner
+    if (payload.profile && typeof payload.profile.bannerUrl === 'string' && payload.profile.bannerUrl.startsWith('indexeddb://')) {
+      const key = payload.profile.bannerUrl.replace('indexeddb://', '') || 'custom_banner_url';
+      try {
+        const stored = await mediaStorage.getItem(key);
+        if (stored) payload.profile.bannerUrl = stored;
+        else payload.profile.bannerUrl = DEFAULT_PROFILE_DATA.profile.bannerUrl;
+      } catch {
+        payload.profile.bannerUrl = DEFAULT_PROFILE_DATA.profile.bannerUrl;
+      }
+    }
+
+    return payload;
   },
 
   /**
@@ -226,7 +351,8 @@ export const dataProvider = {
           if (localData && (localTimestamp > cloudTimestamp || (localIsCustomized && cloudIsDefaultSeed))) {
             // Local storage has newer or customized data! Do not overwrite local.
             this.syncToSupabaseSilently(localData);
-            return this.normalizePayload(localData);
+            const restored = await this.restoreMediaFromIndexedDB(localData);
+            return this.normalizePayload(restored);
           }
 
           // Cache cloud data to LocalStorage for offline resilience
@@ -238,7 +364,8 @@ export const dataProvider = {
             console.warn('[DataProvider] Failed caching to LocalStorage:', storageErr);
           }
 
-          return cloudData;
+          const restoredCloud = await this.restoreMediaFromIndexedDB(cloudData);
+          return restoredCloud;
         }
       } catch (err) {
         console.warn('[DataProvider] Supabase fetch timed out or failed, falling back to LocalStorage:', err);
@@ -247,7 +374,8 @@ export const dataProvider = {
 
     // 2. Fallback to LocalStorage with schema normalization & deep merge
     if (localData) {
-      return this.normalizePayload(localData);
+      const restoredLocal = await this.restoreMediaFromIndexedDB(localData);
+      return this.normalizePayload(restoredLocal);
     }
 
     // 3. Built-in seed data fallback
@@ -296,20 +424,43 @@ export const dataProvider = {
         : deepClone(DEFAULT_PROFILE_DATA.settings),
     };
 
+    // Offload multi-megabyte media to IndexedDB so localStorage (<5MB) and Supabase REST body (<2MB) stay ultra-lightweight
+    const lightweight = await this.offloadLargeMedia(sanitized);
+
     let localSaved = false;
     let localError = null;
 
     // 1. Synchronously persist to LocalStorage
     try {
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(lightweight));
         localSaved = true;
       } else {
         localError = new Error('localStorage is undefined');
       }
     } catch (err) {
-      console.error('[DataProvider] LocalStorage save failed:', err);
+      console.warn('[DataProvider] LocalStorage save failed, attempting emergency compression:', err);
       localError = err;
+      // Emergency recovery: strip large data: URLs from lightweight to guarantee persistence
+      try {
+        const emergencyClean = deepClone(lightweight);
+        if (emergencyClean.music?.audioUrl?.startsWith('data:')) {
+          emergencyClean.music.audioUrl = 'indexeddb://custom_audio_file';
+        }
+        if (emergencyClean.profile?.avatarUrl?.startsWith('data:')) {
+          emergencyClean.profile.avatarUrl = DEFAULT_PROFILE_DATA.profile.avatarUrl;
+        }
+        if (emergencyClean.profile?.bannerUrl?.startsWith('data:')) {
+          emergencyClean.profile.bannerUrl = DEFAULT_PROFILE_DATA.profile.bannerUrl;
+        }
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(emergencyClean));
+          localSaved = true;
+          localError = null;
+        }
+      } catch (emergencyErr) {
+        console.error('[DataProvider] Emergency cleanup save also failed:', emergencyErr);
+      }
     }
 
     // 2. If Supabase is active, persist to PostgreSQL tables (with 4000ms timeout)
@@ -325,14 +476,14 @@ export const dataProvider = {
           let profileId = existingProfile?.id;
 
           const profilePayload = {
-            name: sanitized.profile.name,
-            handle: sanitized.profile.handle,
-            bio: sanitized.profile.bio,
-            quote: sanitized.profile.quote,
-            avatar_url: sanitized.profile.avatarUrl,
-            banner_url: sanitized.profile.bannerUrl,
-            location: sanitized.profile.location,
-            status_badge: sanitized.profile.statusBadge,
+            name: lightweight.profile.name,
+            handle: lightweight.profile.handle,
+            bio: lightweight.profile.bio,
+            quote: lightweight.profile.quote,
+            avatar_url: lightweight.profile.avatarUrl,
+            banner_url: lightweight.profile.bannerUrl,
+            location: lightweight.profile.location,
+            status_badge: lightweight.profile.statusBadge,
           };
 
           if (profileId) {
@@ -351,8 +502,8 @@ export const dataProvider = {
           if (profileId) {
             // Sync links
             await supabase.from('links').delete().eq('profile_id', profileId);
-            if (sanitized.links && sanitized.links.length > 0) {
-              const linksPayload = sanitized.links.map((link, idx) => ({
+            if (lightweight.links && lightweight.links.length > 0) {
+              const linksPayload = lightweight.links.map((link, idx) => ({
                 profile_id: profileId,
                 title: link.title || 'Untitled',
                 url: link.url || 'https://',
@@ -367,8 +518,8 @@ export const dataProvider = {
 
             // Sync favorites
             await supabase.from('favorites').delete().eq('profile_id', profileId);
-            if (sanitized.favorites && sanitized.favorites.length > 0) {
-              const favsPayload = sanitized.favorites.map((fav, idx) => ({
+            if (lightweight.favorites && lightweight.favorites.length > 0) {
+              const favsPayload = lightweight.favorites.map((fav, idx) => ({
                 profile_id: profileId,
                 category: fav.category || 'tech',
                 title: fav.title || 'Favorite',
@@ -383,20 +534,20 @@ export const dataProvider = {
             // Sync site settings
             await supabase.from('site_settings').upsert({
               profile_id: profileId,
-              theme_preset: sanitized.settings.themePreset,
-              layout_style: sanitized.settings.layoutStyle,
-              card_style: sanitized.settings.cardStyle,
-              particle_density: sanitized.settings.particleDensity,
-              music_title: sanitized.music.title,
-              music_artist: sanitized.music.artist,
-              music_audio_url: sanitized.music.audioUrl,
-              music_cover_url: sanitized.music.coverUrl,
-              music_spotify_url: sanitized.music.spotifyUrl,
-              music_youtube_url: sanitized.music.youtubeUrl,
+              theme_preset: lightweight.settings.themePreset,
+              layout_style: lightweight.settings.layoutStyle,
+              card_style: lightweight.settings.cardStyle,
+              particle_density: lightweight.settings.particleDensity,
+              music_title: lightweight.music.title,
+              music_artist: lightweight.music.artist,
+              music_audio_url: lightweight.music.audioUrl,
+              music_cover_url: lightweight.music.coverUrl,
+              music_spotify_url: lightweight.music.spotifyUrl,
+              music_youtube_url: lightweight.music.youtubeUrl,
               custom_css_or_config: {
-                isAutoPlay: sanitized.music.isAutoPlay ?? false,
-                defaultVolume: sanitized.music.defaultVolume ?? 0.7,
-                customColors: sanitized.settings.customColors || null,
+                isAutoPlay: lightweight.music.isAutoPlay ?? false,
+                defaultVolume: lightweight.music.defaultVolume ?? 0.7,
+                customColors: lightweight.settings.customColors || null,
               },
             }, { onConflict: 'profile_id' });
           }
@@ -446,6 +597,10 @@ export const dataProvider = {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
       }
+      await mediaStorage.removeItem('custom_audio_file');
+      await mediaStorage.removeItem('custom_music_cover');
+      await mediaStorage.removeItem('custom_avatar_url');
+      await mediaStorage.removeItem('custom_banner_url');
     } catch {
       // Ignore
     }
