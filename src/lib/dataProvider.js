@@ -399,6 +399,13 @@ export const dataProvider = {
 
     // 2. Fallback to LocalStorage with schema normalization & deep merge
     if (localData) {
+      if (localData?.profile && typeof localData.profile === 'object' && localData.profile.name === 'Alex Rivera') {
+        localData.profile.name = DEFAULT_PROFILE_DATA.profile.name;
+        localData.profile.handle = DEFAULT_PROFILE_DATA.profile.handle;
+        if (!localData.profile.avatarUrl || localData.profile.avatarUrl.includes('unsplash')) {
+          localData.profile.avatarUrl = DEFAULT_PROFILE_DATA.profile.avatarUrl;
+        }
+      }
       const restoredLocal = await this.restoreMediaFromIndexedDB(localData);
       return this.normalizePayload(restoredLocal);
     }

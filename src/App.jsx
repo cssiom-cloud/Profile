@@ -96,6 +96,19 @@ export default function App() {
     };
   }, [loadInitialData, setLoginModalOpen]);
 
+  // Dynamic document title and favicon synchronization with profile state
+  useEffect(() => {
+    if (profile?.name && typeof document !== 'undefined') {
+      document.title = `${profile.name} | Profile Hub`;
+    }
+    if (profile?.avatarUrl && typeof document !== 'undefined') {
+      const faviconLink = document.querySelector("link[rel*='icon']");
+      if (faviconLink && (profile.avatarUrl.startsWith('data:') || profile.avatarUrl.startsWith('http') || profile.avatarUrl.startsWith('./'))) {
+        faviconLink.href = profile.avatarUrl;
+      }
+    }
+  }, [profile?.name, profile?.avatarUrl]);
+
   // Handle test mutation to verify store reactivity and isDirty tracking
   const handleTestMutation = () => {
     updateProfile({ quote: 'Smoke Test Updated Quote ' + Date.now() });

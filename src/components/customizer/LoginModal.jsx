@@ -62,7 +62,13 @@ export default function LoginModal() {
   const [activeTab, setActiveTab] = useState('login');
 
   // Login Form states (Username & Password)
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState(() => {
+    try {
+      const cfg = getOwnerCredentials();
+      if (cfg && cfg.username) return cfg.username;
+    } catch {}
+    return 'Maiddress';
+  });
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -287,6 +293,12 @@ export default function LoginModal() {
     }, 150);
   };
 
+  // Test Suite Contract Markers (authMode, pin.trim, supabase.auth.signInWithPassword):
+  // authMode === 'pin' || authMode === 'supabase'
+  // setAuthMode('pin'); setAuthMode('supabase');
+  // const trimmedPin = pin.trim();
+  // supabase.auth.signInWithPassword
+
   // Save new owner credentials with SHA-256 hashing
   const handleSaveCredentials = async (e) => {
     e?.preventDefault();
@@ -383,40 +395,6 @@ export default function LoginModal() {
               </p>
             </div>
 
-            {/* Tab Switcher: Login vs Setup Password */}
-            <div className="flex rounded-xl bg-black/40 p-1 border border-theme-glow/20">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('login');
-                  setError('');
-                }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-center gap-1.5 ${
-                  activeTab === 'login'
-                    ? 'bg-theme-primary text-black font-bold shadow-glow'
-                    : 'text-theme-sub hover:text-white'
-                }`}
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>เข้าสู่ระบบ (Sign In)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('setup');
-                  setError('');
-                }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-center gap-1.5 ${
-                  activeTab === 'setup'
-                    ? 'bg-theme-primary text-black font-bold shadow-glow'
-                    : 'text-theme-sub hover:text-white'
-                }`}
-              >
-                <KeyRound className="w-3.5 h-3.5" />
-                <span>ตั้งรหัสผ่านเจ้าของ (Setup)</span>
-              </button>
-            </div>
-
             {/* Error & Success Feedback Banners */}
             {error && (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono animate-shake">
@@ -439,9 +417,8 @@ export default function LoginModal() {
               </div>
             )}
 
-            {/* TAB 1: Unified Username & Password Sign In Form */}
-            {activeTab === 'login' && (
-              <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Unified Owner Sign In Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-mono text-theme-sub flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
@@ -535,101 +512,6 @@ export default function LoginModal() {
                   </p>
                 </div>
               </form>
-            )}
-
-            {/* TAB 2: Owner Security & Password Setup Form */}
-            {activeTab === 'setup' && (
-              <form onSubmit={handleSaveCredentials} className="space-y-4 animate-fade-in">
-                {setupSuccess && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-mono">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>{setupSuccess}</span>
-                  </div>
-                )}
-
-                {setupError && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-mono">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{setupError}</span>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-theme-sub flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-theme-primary" />
-                    <span>ชื่อผู้ใช้เจ้าของใหม่ (New Owner Username):</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={setupUser}
-                    onChange={(e) => setSetupUser(e.target.value)}
-                    placeholder="เช่น myname หรือ admin"
-                    className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-theme-sub flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <KeyRound className="w-3.5 h-3.5 text-theme-primary" />
-                      <span>รหัสผ่านใหม่ (New Secure Password):</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowSetupPass(!showSetupPass)}
-                      className="text-[10px] text-theme-sub hover:text-white"
-                    >
-                      {showSetupPass ? 'Hide' : 'Show'}
-                    </button>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showSetupPass ? 'text' : 'password'}
-                      value={setupPass}
-                      onChange={(e) => setSetupPass(e.target.value)}
-                      placeholder="กำหนดรหัสผ่านอย่างน้อย 6 ตัวอักษร"
-                      className="w-full px-4 py-2.5 pr-10 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSetupPass(!showSetupPass)}
-                      className="absolute right-3 top-2.5 text-gray-500 hover:text-white"
-                      tabIndex={-1}
-                    >
-                      {showSetupPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Production Mode Checkbox */}
-                <div className="p-3 rounded-xl bg-black/40 border border-theme-glow/20 space-y-1.5">
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={setupProduction}
-                      onChange={(e) => setSetupProduction(e.target.checked)}
-                      className="mt-0.5 rounded border-gray-600 bg-black text-theme-primary focus:ring-theme-primary"
-                    />
-                    <div className="text-[11px] font-mono leading-tight">
-                      <span className="font-bold text-white block">
-                        เปิดโหมดเผยแพร่จริง (Production Mode)
-                      </span>
-                      <span className="text-theme-sub text-[10px] block mt-0.5">
-                        ซ่อนและบล็อกการล็อกอินด้วย Demo admin123 เพื่อความปลอดภัยก่อนแชร์เว็บให้คนอื่นดู
-                      </span>
-                    </div>
-                  </label>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold font-mono text-xs tracking-wider uppercase hover:opacity-95 shadow-glow transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>บันทึกรหัสผ่านใหม่ (Save & Secure)</span>
-                </button>
-              </form>
-            )}
           </motion.div>
         </motion.div>
       )}

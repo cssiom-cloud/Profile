@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import ImageCropModal from '../ui/ImageCropModal.jsx';
 import ColoredBio from '../profile/ColoredBio.jsx';
+import { getOwnerCredentials, setOwnerCredentials } from '../../lib/auth.js';
 
 export default function ProfileEditorTab() {
   const { profile, updateProfile } = useProfileStore();
@@ -40,6 +41,10 @@ export default function ProfileEditorTab() {
   // Owner Credentials Management (Username & Password)
   const [authCreds, setAuthCreds] = useState(() => {
     try {
+      const cfg = getOwnerCredentials();
+      if (cfg && cfg.username) {
+        return { username: cfg.username, password: '' };
+      }
       const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('profile_owner_auth') : null;
       if (stored) return JSON.parse(stored);
     } catch {
@@ -50,8 +55,11 @@ export default function ProfileEditorTab() {
   const [credsSaved, setCredsSaved] = useState(false);
   const [showCredsPassword, setShowCredsPassword] = useState(false);
 
-  const handleSaveCredentials = () => {
+  const handleSaveCredentials = async () => {
     try {
+      if (authCreds.username && authCreds.password) {
+        await setOwnerCredentials(authCreds.username, authCreds.password, true);
+      }
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('profile_owner_auth', JSON.stringify(authCreds));
       }

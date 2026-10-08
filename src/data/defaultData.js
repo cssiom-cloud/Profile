@@ -41,18 +41,25 @@ export const FAVORITE_CATEGORIES = [
 
 export const DEFAULT_PROFILE_DATA = {
   profile: {
-    name: 'Alex Rivera',
-    handle: '@alexrivera',
-    bio: 'Creative Technologist & UI Engineer. Crafting digital realities with code, sound, and interactive canvas aesthetics.',
-    quote: '"Dream in algorithms, craft in color, build for the future."',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    name: 'Maiddress ( DEV )',
+    handle: '@maiddress_cc',
+    bio: `Maiddress = {
+"age": 0,
+"gender": "Idc",
+"mbti": ["INTJ", "INTP"],
+"skills": ["Law", "WebDev", "Lua"],
+"likes": ["Book", "Quiet", "Code"],
+"timezone": "Asia/Bangkok"
+}`,
+    quote: '"ดูที่ผลก่อนการกระทำ"',
+    avatarUrl: './avatar.png',
     bannerUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80',
-    location: 'Tokyo & Neo-Metropolis',
-    statusBadge: '⚡ Exploring Creative Frontiers',
-    footerCraftedBy: 'Alex Rivera',
+    location: 'เมืองไทย',
+    statusBadge: 'ดูเมะ ไม่ก็ ทำอะไรไปเรื่อย',
+    footerCraftedBy: 'Maiddress ( DEV )',
     footerCopyright: 'All rights reserved',
-    footerCredits: 'Powered by React, Vite, Tailwind CSS & Supabase • Hosted on GitHub Pages',
-    showFooterCredits: true,
+    footerCredits: 'Powered by React, Vite, Tailwind CSS • Hosted on GitHub Pages',
+    showFooterCredits: false,
   },
   links: [
     {
@@ -200,13 +207,13 @@ export const DEFAULT_PROFILE_DATA = {
     },
   ],
   music: {
-    title: 'Synthetic Serenade',
-    artist: 'Lofi Tokyo Beats',
-    audioUrl: 'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3',
-    coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80',
-    spotifyUrl: 'https://open.spotify.com',
-    youtubeUrl: 'https://youtube.com',
-    isAutoPlay: false,
+    title: 'PLEASE - Atom ชนกันต์ 【OFFICIAL MV 】',
+    artist: 'ชนกันต์ รัตนอุดม',
+    audioUrl: './audio/please-atom.mp3',
+    coverUrl: './avatar.png',
+    spotifyUrl: 'https://open.spotify.com/track/6p07G2uB42l15vJp6wYy6z',
+    youtubeUrl: 'https://www.youtube.com/watch?v=0hVf90v_9bE',
+    isAutoPlay: true,
     defaultVolume: 0.7,
   },
   settings: {

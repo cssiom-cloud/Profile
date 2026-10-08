@@ -262,8 +262,8 @@ export async function verifyLocalCredentials(username, password) {
     return { success: true };
   }
 
-  // 3. Default demo fallback (admin / admin123) unless production lock is enforced
-  const isDefaultUser = trimmedUser.toLowerCase() === 'admin' || trimmedUser.toLowerCase() === 'owner';
+  // 3. Default demo fallback (admin / admin123 / maiddress) unless production lock is enforced
+  const isDefaultUser = trimmedUser.toLowerCase() === 'admin' || trimmedUser.toLowerCase() === 'owner' || trimmedUser.toLowerCase() === 'maiddress';
   const isDefaultPass = trimmedPass === 'admin123' || trimmedPass === 'admin' || trimmedPass === '1234';
 
   if (!creds.isProduction && isDefaultUser && isDefaultPass) {
