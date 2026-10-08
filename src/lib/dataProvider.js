@@ -96,14 +96,15 @@ export const dataProvider = {
               coverUrl: settingsRes.data?.music_cover_url || DEFAULT_PROFILE_DATA.music.coverUrl,
               spotifyUrl: settingsRes.data?.music_spotify_url || DEFAULT_PROFILE_DATA.music.spotifyUrl,
               youtubeUrl: settingsRes.data?.music_youtube_url || DEFAULT_PROFILE_DATA.music.youtubeUrl,
-              isAutoPlay: false,
-              defaultVolume: 0.7,
+              isAutoPlay: settingsRes.data?.custom_css_or_config?.isAutoPlay ?? false,
+              defaultVolume: settingsRes.data?.custom_css_or_config?.defaultVolume ?? 0.7,
             },
             settings: {
               themePreset: settingsRes.data?.theme_preset || DEFAULT_PROFILE_DATA.settings.themePreset,
               layoutStyle: settingsRes.data?.layout_style || DEFAULT_PROFILE_DATA.settings.layoutStyle,
               cardStyle: settingsRes.data?.card_style || DEFAULT_PROFILE_DATA.settings.cardStyle,
               particleDensity: settingsRes.data?.particle_density || DEFAULT_PROFILE_DATA.settings.particleDensity,
+              customColors: settingsRes.data?.custom_css_or_config?.customColors || DEFAULT_PROFILE_DATA.settings.customColors,
             },
           };
 
@@ -327,6 +328,11 @@ export const dataProvider = {
           music_cover_url: sanitized.music.coverUrl,
           music_spotify_url: sanitized.music.spotifyUrl,
           music_youtube_url: sanitized.music.youtubeUrl,
+          custom_css_or_config: {
+            isAutoPlay: sanitized.music.isAutoPlay ?? false,
+            defaultVolume: sanitized.music.defaultVolume ?? 0.7,
+            customColors: sanitized.settings.customColors || null,
+          },
         }, { onConflict: 'profile_id' });
 
         return {

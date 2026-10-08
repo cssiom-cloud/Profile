@@ -5,8 +5,18 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-const rawUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_URL : '';
-const rawAnonKey = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_ANON_KEY : '';
+const getEnvVar = (key) => {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+    return import.meta.env[key];
+  }
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
+  }
+  return '';
+};
+
+const rawUrl = getEnvVar('VITE_SUPABASE_URL');
+const rawAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
 /**
  * Normalizes Supabase URL, auto-filling https:// and .supabase.co if only project ref ID was provided

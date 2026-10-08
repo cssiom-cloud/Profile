@@ -48,6 +48,7 @@ export default function LoginModal() {
 
   // Mode selection: 'pin' (Default Demo PIN) or 'supabase' (Cloud Auth)
   const [authMode, setAuthMode] = useState('pin');
+  const [supabaseAuthMode, setSupabaseAuthMode] = useState('signin'); // 'signin' | 'signup'
 
   // Form states
   const [pin, setPin] = useState('');
@@ -203,13 +204,38 @@ export default function LoginModal() {
     setIsLoading(true);
 
     try {
+      if (supabaseAuthMode === 'signup') {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: trimmedEmail,
+          password: password,
+        });
+
+        if (signUpError) {
+          setError(signUpError.message || 'Supabase account creation failed.');
+          setIsLoading(false);
+          return;
+        }
+
+        if (data?.session || data?.user) {
+          triggerUnlockSuccess(`Account created! Welcome, ${data.user?.email || 'Owner'}!`);
+        } else {
+          triggerUnlockSuccess(`Account created for ${trimmedEmail}! You can now sign in.`);
+        }
+        return;
+      }
+
+      // Default: Sign in
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: trimmedEmail,
         password: password,
       });
 
       if (authError) {
-        setError(authError.message || 'Supabase authentication failed.');
+        if (authError.message?.toLowerCase().includes('invalid login credentials')) {
+          setError('Invalid login credentials. If you haven\'t created an owner account yet, select "Sign Up" above.');
+        } else {
+          setError(authError.message || 'Supabase authentication failed.');
+        }
         setIsLoading(false);
         return;
       }
@@ -418,6 +444,38 @@ export default function LoginModal() {
                   </div>
                 ) : (
                   <form onSubmit={handleSupabaseSubmit} className="space-y-4">
+                    {/* Supabase Sub-Mode Switcher: Sign In vs Sign Up */}
+                    <div className="flex rounded-xl bg-black/40 p-1 border border-theme-glow/20">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSupabaseAuthMode('signin');
+                          setError('');
+                        }}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
+                          supabaseAuthMode === 'signin'
+                            ? 'bg-theme-primary/20 text-theme-primary font-bold shadow-sm'
+                            : 'text-theme-sub hover:text-white'
+                        }`}
+                      >
+                        Sign In (เข้าสู่ระบบ)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSupabaseAuthMode('signup');
+                          setError('');
+                        }}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
+                          supabaseAuthMode === 'signup'
+                            ? 'bg-theme-primary/20 text-theme-primary font-bold shadow-sm'
+                            : 'text-theme-sub hover:text-white'
+                        }`}
+                      >
+                        Sign Up (สร้างบัญชี)
+                      </button>
+                    </div>
+
                     <div className="space-y-1.5">
                       <label className="text-xs font-mono text-theme-sub flex items-center gap-1.5">
                         <Mail className="w-3.5 h-3.5 text-theme-primary" />
@@ -488,11 +546,11 @@ export default function LoginModal() {
                       {isLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Verifying Credentials...</span>
+                          <span>{supabaseAuthMode === 'signup' ? 'Creating Account...' : 'Verifying Credentials...'}</span>
                         </>
                       ) : (
                         <>
-                          <span>Sign In via Supabase</span>
+                          <span>{supabaseAuthMode === 'signup' ? 'Create Account & Unlock' : 'Sign In via Supabase'}</span>
                           <ArrowRight className="w-4 h-4" />
                         </>
                       )}

@@ -49,6 +49,8 @@ export default function App() {
     updateProfile,
     updateSettings,
     saveChanges,
+    setCustomizerOpen,
+    openCustomizer,
     toggleCustomizer,
     setLoginModalOpen,
   } = useProfileStore();

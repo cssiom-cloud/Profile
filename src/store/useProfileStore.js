@@ -33,9 +33,64 @@ const deepClone = (obj) => {
 /**
  * Applies theme attribute to DOM document root for instant zero-reload CSS variable updates
  */
-const applyThemeToDOM = (themePreset) => {
-  if (typeof document !== 'undefined' && themePreset) {
-    document.documentElement.setAttribute('data-theme', themePreset);
+export const applyThemeToDOM = (themePreset, customColors = null) => {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+
+  if (themePreset === 'custom' && customColors && typeof customColors === 'object') {
+    root.setAttribute('data-theme', 'custom');
+    if (customColors.primary) {
+      root.style?.setProperty?.('--accent-primary', customColors.primary);
+      root.style?.setProperty?.('--particle-color', customColors.primary);
+    }
+    if (customColors.secondary) {
+      root.style?.setProperty?.('--accent-secondary', customColors.secondary);
+    }
+    if (customColors.base) {
+      root.style?.setProperty?.('--bg-base', customColors.base);
+    }
+    if (customColors.surface) {
+      root.style?.setProperty?.('--bg-surface', customColors.surface);
+      root.style?.setProperty?.('--bg-surface-hover', customColors.surfaceHover || customColors.surface);
+    }
+    if (customColors.glow) {
+      root.style?.setProperty?.('--border-glow', customColors.glow);
+    } else if (customColors.primary) {
+      root.style?.setProperty?.('--border-glow', `${customColors.primary}55`);
+    }
+    if (customColors.textMain) {
+      root.style?.setProperty?.('--text-main', customColors.textMain);
+    }
+    if (customColors.textSub) {
+      root.style?.setProperty?.('--text-sub', customColors.textSub);
+    }
+  } else {
+    const validPreset = themePreset || 'cyber-neon';
+    root.setAttribute?.('data-theme', validPreset);
+    if (typeof root.style?.removeProperty === 'function') {
+      root.style.removeProperty('--accent-primary');
+      root.style.removeProperty('--accent-secondary');
+      root.style.removeProperty('--bg-base');
+      root.style.removeProperty('--bg-surface');
+      root.style.removeProperty('--bg-surface-hover');
+      root.style.removeProperty('--border-glow');
+      root.style.removeProperty('--particle-color');
+      root.style.removeProperty('--text-main');
+      root.style.removeProperty('--text-sub');
+    }
+  }
+
+  // Dispatch 'themechange' event so canvas & audio visualizers adapt
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('themechange', {
+          detail: { theme: themePreset, customColors },
+        })
+      );
+    } catch {
+      // Graceful fallback
+    }
   }
 };
 
@@ -112,9 +167,7 @@ export const useProfileStore = create((set, get) => ({
     set((state) => {
       const currentSettings = (state.settings && typeof state.settings === 'object') ? state.settings : {};
       const updatedSettings = { ...currentSettings, ...fields };
-      if (fields?.themePreset) {
-        applyThemeToDOM(fields.themePreset);
-      }
+      applyThemeToDOM(updatedSettings.themePreset, updatedSettings.customColors);
       const nextDraft = { ...state, settings: updatedSettings };
       return {
         settings: updatedSettings,
@@ -124,12 +177,38 @@ export const useProfileStore = create((set, get) => ({
   },
 
   setThemePreset: (presetId) => {
-    if (presetId) {
-      applyThemeToDOM(presetId);
-    }
     set((state) => {
       const currentSettings = (state.settings && typeof state.settings === 'object') ? state.settings : {};
       const updatedSettings = { ...currentSettings, themePreset: presetId };
+      applyThemeToDOM(presetId, updatedSettings.customColors);
+      const nextDraft = { ...state, settings: updatedSettings };
+      return {
+        settings: updatedSettings,
+        isDirty: computeIsDirty(nextDraft, state.committedState),
+      };
+    });
+  },
+
+  updateCustomColors: (colors = {}) => {
+    set((state) => {
+      const currentSettings = (state.settings && typeof state.settings === 'object') ? state.settings : {};
+      const currentCustom = currentSettings.customColors || {
+        primary: '#00f0ff',
+        secondary: '#ff007f',
+        base: '#090a0f',
+        surface: '#10141f',
+        surfaceHover: '#181e2e',
+        glow: '#00f0ff',
+        textMain: '#f1f5f9',
+        textSub: '#94a3b8',
+      };
+      const updatedCustom = { ...currentCustom, ...colors };
+      const updatedSettings = {
+        ...currentSettings,
+        themePreset: 'custom',
+        customColors: updatedCustom,
+      };
+      applyThemeToDOM('custom', updatedCustom);
       const nextDraft = { ...state, settings: updatedSettings };
       return {
         settings: updatedSettings,
@@ -329,7 +408,7 @@ export const useProfileStore = create((set, get) => ({
       };
 
       if (safeData.settings?.themePreset) {
-        applyThemeToDOM(safeData.settings.themePreset);
+        applyThemeToDOM(safeData.settings.themePreset, safeData.settings.customColors);
       }
 
       const snapshot = deepClone(safeData);
@@ -392,7 +471,7 @@ export const useProfileStore = create((set, get) => ({
   revertChanges: () => {
     const committed = get().committedState;
     if (committed?.settings?.themePreset) {
-      applyThemeToDOM(committed.settings.themePreset);
+      applyThemeToDOM(committed.settings.themePreset, committed.settings.customColors);
     }
     set({
       profile: deepClone(committed.profile),
@@ -412,7 +491,7 @@ export const useProfileStore = create((set, get) => ({
     set({ saveStatus: 'saving' });
     const defaults = await dataProvider.resetData();
     if (defaults?.settings?.themePreset) {
-      applyThemeToDOM(defaults.settings.themePreset);
+      applyThemeToDOM(defaults.settings.themePreset, defaults.settings.customColors);
     }
 
     const snapshot = deepClone(defaults);
@@ -445,7 +524,7 @@ export const useProfileStore = create((set, get) => ({
     try {
       const validated = dataProvider.validateImportData(importedData);
       if (validated?.settings?.themePreset) {
-        applyThemeToDOM(validated.settings.themePreset);
+        applyThemeToDOM(validated.settings.themePreset, validated.settings.customColors);
       }
 
       set((state) => {

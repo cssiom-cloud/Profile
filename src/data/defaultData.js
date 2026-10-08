@@ -210,5 +210,15 @@ export const DEFAULT_PROFILE_DATA = {
     layoutStyle: 'bento',
     cardStyle: 'glassmorphism',
     particleDensity: 'medium',
+    customColors: {
+      primary: '#00f0ff',
+      secondary: '#ff007f',
+      base: '#090a0f',
+      surface: '#10141f',
+      surfaceHover: '#181e2e',
+      glow: '#00f0ff',
+      textMain: '#f1f5f9',
+      textSub: '#94a3b8',
+    },
   },
 };

@@ -73,6 +73,7 @@ const getSafeMusic = (storeMusic) => {
 export default function MusicPlayer({ music: propMusic, variant = 'card', className = '' }) {
   // Read live reactive music draft from Zustand store or props
   const storeMusic = useProfileStore((state) => state.music);
+  const updateMusic = useProfileStore((state) => state.updateMusic);
   const music = getSafeMusic(propMusic || storeMusic);
 
   // Audio element reference and previous volume store for mute restoration
@@ -119,16 +120,22 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
     }
   }, [music.audioUrl, isPlaying]);
 
-  // Set initial volume on mount
+  // Synchronize volume in real-time when music.defaultVolume updates in store
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio) {
-      const initialVol = Math.max(0, Math.min(1, music.defaultVolume ?? 0.7));
-      audio.volume = initialVol;
-      setVolume(initialVol);
-      prevVolumeRef.current = initialVol;
+    if (audio && typeof music.defaultVolume === 'number') {
+      const targetVol = Math.max(0, Math.min(1, music.defaultVolume));
+      audio.volume = targetVol;
+      audio.muted = targetVol === 0;
+      setVolume(targetVol);
+      if (targetVol > 0) {
+        prevVolumeRef.current = targetVol;
+        setIsMuted(false);
+      } else {
+        setIsMuted(true);
+      }
     }
-  }, []);
+  }, [music.defaultVolume]);
 
   // ---------------------------------------------------------------------------
   // Audio Element Event Handlers
@@ -258,6 +265,8 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
       audio.volume = Math.max(0, Math.min(1, newVol));
       audio.muted = newVol === 0;
     }
+    // Save volume changes in real-time to store & persistent state
+    updateMusic({ defaultVolume: newVol });
   };
 
   const toggleMute = () => {
