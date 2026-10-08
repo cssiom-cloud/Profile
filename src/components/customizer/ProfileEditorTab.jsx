@@ -8,17 +8,54 @@
  * - Visual live previews for Avatar and Banner
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useProfileStore } from '../../store/useProfileStore.js';
-import { User, Image, Quote, MapPin, Sparkles, AtSign, AlignLeft, Layers } from 'lucide-react';
+import { User, Image, Quote, MapPin, Sparkles, AtSign, AlignLeft, Layers, Crop, Upload } from 'lucide-react';
+import ImageCropModal from '../ui/ImageCropModal.jsx';
 
 export default function ProfileEditorTab() {
   const { profile, updateProfile } = useProfileStore();
   const [avatarLoadError, setAvatarLoadError] = useState(false);
   const [bannerLoadError, setBannerLoadError] = useState(false);
 
+  // Image Cropper Modal State
+  const [cropModal, setCropModal] = useState({
+    isOpen: false,
+    targetField: 'avatarUrl',
+    title: '',
+    defaultAspect: '1:1',
+    circularGuide: false,
+    initialSrc: '',
+  });
+
+  const avatarFileRef = useRef(null);
+  const bannerFileRef = useRef(null);
+
   const handleChange = (field, value) => {
     updateProfile({ [field]: value });
+  };
+
+  const handleOpenCropper = (targetField, initialSrc, defaultAspect, circularGuide, title) => {
+    setCropModal({
+      isOpen: true,
+      targetField,
+      initialSrc: initialSrc || '',
+      defaultAspect,
+      circularGuide,
+      title,
+    });
+  };
+
+  const handleFileInputSelect = (e, targetField, defaultAspect, circularGuide, title) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      handleOpenCropper(targetField, event.target.result, defaultAspect, circularGuide, title);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const currentAvatar = profile?.avatarUrl || '';
@@ -125,12 +162,61 @@ export default function ProfileEditorTab() {
         />
       </div>
 
-      {/* 3. Avatar Image URL */}
+      {/* 3. Avatar Image URL & Upload/Crop */}
       <div className="space-y-1.5">
-        <label className="text-theme-sub flex items-center gap-1.5 font-bold">
-          <Image className="w-3.5 h-3.5 text-theme-primary" />
-          <span>Avatar Image URL:</span>
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+            <Image className="w-3.5 h-3.5 text-theme-primary" />
+            <span>Avatar Image:</span>
+          </label>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => avatarFileRef.current?.click()}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-theme-surface border border-theme-glow/30 hover:border-theme-primary text-theme-primary hover:text-white transition-all text-[10px]"
+              title="Upload image from computer"
+            >
+              <Upload className="w-3 h-3" />
+              <span>Upload Local</span>
+            </button>
+            {profile?.avatarUrl && (
+              <button
+                type="button"
+                onClick={() =>
+                  handleOpenCropper(
+                    'avatarUrl',
+                    profile.avatarUrl,
+                    '1:1',
+                    true,
+                    'Crop Avatar Image (1:1 Circle / Square)'
+                  )
+                }
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-theme-primary/10 border border-theme-primary/40 text-theme-primary hover:bg-theme-primary hover:text-black transition-all text-[10px]"
+                title="Crop & adjust aspect ratio"
+              >
+                <Crop className="w-3 h-3" />
+                <span>Crop (1:1)</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <input
+          ref={avatarFileRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) =>
+            handleFileInputSelect(
+              e,
+              'avatarUrl',
+              '1:1',
+              true,
+              'Crop Uploaded Avatar (1:1 Circle / Square)'
+            )
+          }
+          className="hidden"
+        />
+
         <input
           type="url"
           value={profile?.avatarUrl || ''}
@@ -138,17 +224,66 @@ export default function ProfileEditorTab() {
             setAvatarLoadError(false);
             handleChange('avatarUrl', e.target.value);
           }}
-          placeholder="https://images.unsplash.com/photo-..."
+          placeholder="https://images.unsplash.com/... or upload image"
           className="w-full px-3 py-2 rounded-xl bg-black/50 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all text-[11px]"
         />
       </div>
 
-      {/* 4. Banner Cover Image URL */}
+      {/* 4. Banner Cover Image URL & Upload/Crop */}
       <div className="space-y-1.5">
-        <label className="text-theme-sub flex items-center gap-1.5 font-bold">
-          <Layers className="w-3.5 h-3.5 text-theme-primary" />
-          <span>Banner Cover URL:</span>
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+            <Layers className="w-3.5 h-3.5 text-theme-primary" />
+            <span>Banner Cover:</span>
+          </label>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => bannerFileRef.current?.click()}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-theme-surface border border-theme-glow/30 hover:border-theme-primary text-theme-primary hover:text-white transition-all text-[10px]"
+              title="Upload banner image from computer"
+            >
+              <Upload className="w-3 h-3" />
+              <span>Upload Local</span>
+            </button>
+            {profile?.bannerUrl && (
+              <button
+                type="button"
+                onClick={() =>
+                  handleOpenCropper(
+                    'bannerUrl',
+                    profile.bannerUrl,
+                    '3:1',
+                    false,
+                    'Crop Banner Cover (3:1 / 16:9 / Free)'
+                  )
+                }
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-theme-primary/10 border border-theme-primary/40 text-theme-primary hover:bg-theme-primary hover:text-black transition-all text-[10px]"
+                title="Crop & adjust banner aspect ratio"
+              >
+                <Crop className="w-3 h-3" />
+                <span>Crop Banner</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <input
+          ref={bannerFileRef}
+          type="file"
+          accept="image/*"
+          onChange={(e) =>
+            handleFileInputSelect(
+              e,
+              'bannerUrl',
+              '3:1',
+              false,
+              'Crop Uploaded Banner Cover (3:1 / 16:9)'
+            )
+          }
+          className="hidden"
+        />
+
         <input
           type="url"
           value={profile?.bannerUrl || ''}
@@ -156,7 +291,7 @@ export default function ProfileEditorTab() {
             setBannerLoadError(false);
             handleChange('bannerUrl', e.target.value);
           }}
-          placeholder="https://images.unsplash.com/photo-..."
+          placeholder="https://images.unsplash.com/... or upload image"
           className="w-full px-3 py-2 rounded-xl bg-black/50 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all text-[11px]"
         />
       </div>
@@ -205,6 +340,19 @@ export default function ProfileEditorTab() {
           className="w-full px-3 py-2 rounded-xl bg-black/50 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all"
         />
       </div>
+
+      {/* Interactive Image Cropper Modal */}
+      <ImageCropModal
+        isOpen={cropModal.isOpen}
+        onClose={() => setCropModal((prev) => ({ ...prev, isOpen: false }))}
+        onCropComplete={(croppedDataUrl) => {
+          handleChange(cropModal.targetField, croppedDataUrl);
+        }}
+        initialImageSrc={cropModal.initialSrc}
+        title={cropModal.title}
+        defaultAspect={cropModal.defaultAspect}
+        circularGuide={cropModal.circularGuide}
+      />
     </div>
   );
 }

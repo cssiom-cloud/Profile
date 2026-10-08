@@ -1,16 +1,19 @@
 /**
  * src/components/customizer/MusicEditorTab.jsx
- * Audio Player & Soundwave Settings WYSIWYG Editor Tab (Milestone M5 - Feature 21)
+ * Audio Player & Soundwave Settings WYSIWYG Editor Tab
  *
- * Requirements:
- * - Fields: title, artist, audioUrl, coverUrl, spotifyUrl, youtubeUrl
- * - Autoplay toggle switch (isAutoPlay)
- * - Default volume slider (defaultVolume)
- * - Live audio stream testing & artwork preview
+ * Enhanced Capabilities:
+ * - Smart Link Auto-Detector & Metadata/Cover Fetcher (YouTube & Spotify)
+ * - Local Audio File Uploader (.mp3, .wav, .m4a, .ogg) with instant offline playback
+ * - Interactive Album Artwork Upload & Canvas Cropper (ImageCropModal 1:1)
+ * - Built-in Music Downloader Guide (Cobalt.tools, yt-dlp, Y2Mate) with step-by-step instructions
+ * - Playback Preferences: Autoplay toggle & Default volume slider
+ * - Live Audio Stream & Turntable testing
  */
 
 import React, { useState, useRef } from 'react';
 import { useProfileStore } from '../../store/useProfileStore.js';
+import ImageCropModal from '../ui/ImageCropModal.jsx';
 import {
   Music,
   Disc,
@@ -23,7 +26,16 @@ import {
   Image,
   ExternalLink,
   Sparkles,
-  RotateCcw,
+  Upload,
+  Crop,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
+  Download,
+  Terminal,
+  Globe,
+  Loader2,
+  Layers,
 } from 'lucide-react';
 
 export default function MusicEditorTab() {
@@ -32,11 +44,23 @@ export default function MusicEditorTab() {
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const audioPreviewRef = useRef(null);
   const [coverError, setCoverError] = useState(false);
+  const [isFetchingLink, setIsFetchingLink] = useState(false);
+  const [linkFetchStatus, setLinkFetchStatus] = useState(null); // { type: 'success' | 'error', message: string }
+  const [audioFileInfo, setAudioFileInfo] = useState(null); // { name: string, size: string }
+  const [showDownloaderGuide, setShowDownloaderGuide] = useState(false);
+
+  // Image Cropper Modal State
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropInitialSrc, setCropInitialSrc] = useState('');
+
+  const artworkFileInputRef = useRef(null);
+  const audioFileInputRef = useRef(null);
 
   const handleChange = (field, value) => {
     updateMusic({ [field]: value });
   };
 
+  // Test audio playback toggle
   const handleTestAudioToggle = () => {
     if (!music?.audioUrl) return;
 
@@ -76,6 +100,158 @@ export default function MusicEditorTab() {
     }
   };
 
+  // Handle local audio file selection (.mp3, .wav, .m4a, .ogg)
+  const handleAudioFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|m4a|ogg|aac|flac)$/i)) {
+      alert('Please select a valid audio file (.mp3, .wav, .m4a, .ogg)');
+      return;
+    }
+
+    const fileSizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    setAudioFileInfo({
+      name: file.name,
+      size: `${fileSizeMb} MB`,
+    });
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const audioDataUrl = event.target.result;
+      handleChange('audioUrl', audioDataUrl);
+
+      // Auto-suggest title from filename if title is default or empty
+      const baseName = file.name.replace(/\.[^/.]+$/, '').trim();
+      if (!music?.title || music.title === 'Synthetic Serenade') {
+        handleChange('title', baseName);
+      }
+
+      setLinkFetchStatus({
+        type: 'success',
+        message: `Local audio "${file.name}" loaded successfully! Ready to play.`,
+      });
+      setTimeout(() => setLinkFetchStatus(null), 4000);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Handle artwork local file selection -> open cropper immediately
+  const handleArtworkFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCropInitialSrc(event.target.result);
+      setCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Smart Link Metadata & Cover Fetcher for YouTube and Spotify
+  const handleFetchLinkInfo = async (url) => {
+    const targetUrl = (url || music?.youtubeUrl || music?.spotifyUrl || '').trim();
+    if (!targetUrl) {
+      setLinkFetchStatus({
+        type: 'error',
+        message: 'Please paste a valid YouTube or Spotify link first.',
+      });
+      setTimeout(() => setLinkFetchStatus(null), 3000);
+      return;
+    }
+
+    setIsFetchingLink(true);
+    setLinkFetchStatus(null);
+
+    try {
+      // 1. YouTube Link Detection
+      const ytMatch = targetUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      if (ytMatch && ytMatch[1]) {
+        const videoId = ytMatch[1];
+        const highResThumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+        // Update cover and youtubeUrl
+        handleChange('coverUrl', highResThumb);
+        handleChange('youtubeUrl', targetUrl);
+        setCoverError(false);
+
+        // Fetch oEmbed title & author
+        try {
+          const res = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(targetUrl)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.title) handleChange('title', data.title);
+            if (data.author_name) handleChange('artist', data.author_name);
+          }
+        } catch {
+          // Graceful fallback to video ID thumbnail
+        }
+
+        setLinkFetchStatus({
+          type: 'success',
+          message: 'YouTube cover artwork & video metadata successfully fetched!',
+        });
+        setTimeout(() => setLinkFetchStatus(null), 4000);
+        setIsFetchingLink(false);
+        return;
+      }
+
+      // 2. Spotify Link Detection
+      const spotMatch = targetUrl.match(/open\.spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
+      if (spotMatch) {
+        handleChange('spotifyUrl', targetUrl);
+
+        try {
+          const res = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(targetUrl)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.thumbnail_url) {
+              handleChange('coverUrl', data.thumbnail_url);
+              setCoverError(false);
+            }
+            if (data.title) {
+              // Spotify title usually is "Track Title - Artist"
+              const parts = data.title.split(' - ');
+              if (parts.length >= 2) {
+                handleChange('title', parts[0].trim());
+                handleChange('artist', parts[1].trim());
+              } else {
+                handleChange('title', data.title);
+              }
+            }
+          }
+        } catch {
+          // Spotify CORS fallback
+        }
+
+        setLinkFetchStatus({
+          type: 'success',
+          message: 'Spotify artwork & metadata successfully fetched!',
+        });
+        setTimeout(() => setLinkFetchStatus(null), 4000);
+        setIsFetchingLink(false);
+        return;
+      }
+
+      setLinkFetchStatus({
+        type: 'error',
+        message: 'Could not auto-detect YouTube or Spotify URL format. You can manually enter details below.',
+      });
+      setTimeout(() => setLinkFetchStatus(null), 4000);
+    } catch (err) {
+      setLinkFetchStatus({
+        type: 'error',
+        message: `Failed to fetch metadata: ${err.message}`,
+      });
+      setTimeout(() => setLinkFetchStatus(null), 4000);
+    } finally {
+      setIsFetchingLink(false);
+    }
+  };
+
   const currentVolume = music?.defaultVolume ?? 0.7;
   const currentVolumePercent = Math.round(currentVolume * 100);
 
@@ -83,7 +259,7 @@ export default function MusicEditorTab() {
     <div className="space-y-5 font-mono text-xs">
       {/* Visual Audio Header Banner */}
       <div className="p-3.5 rounded-2xl bg-black/50 border border-theme-glow/30 flex items-center gap-3.5">
-        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-black/80 border border-theme-primary/40 shrink-0 shadow-glow">
+        <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-black/80 border border-theme-primary/40 shrink-0 shadow-glow">
           {music?.coverUrl && !coverError ? (
             <img
               src={music.coverUrl}
@@ -109,25 +285,85 @@ export default function MusicEditorTab() {
             {music?.artist || 'Lofi Tokyo Beats'}
           </p>
 
-          <button
-            type="button"
-            onClick={handleTestAudioToggle}
-            className="mt-1 flex items-center gap-1.5 text-[10px] text-theme-sub hover:text-white font-mono transition-colors"
-          >
-            {isPlayingTest ? (
-              <>
-                <Pause className="w-3 h-3 text-theme-primary" />
-                <span className="text-theme-primary font-bold">Stop Audio Preview</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-3 h-3 text-theme-accent" />
-                <span>Test Audio Stream</span>
-              </>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={handleTestAudioToggle}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-theme-surface border border-theme-glow/30 text-[10px] text-theme-sub hover:text-white font-mono transition-all"
+            >
+              {isPlayingTest ? (
+                <>
+                  <Pause className="w-3 h-3 text-theme-primary" />
+                  <span className="text-theme-primary font-bold">Stop Preview</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3 text-theme-accent" />
+                  <span>Test Audio</span>
+                </>
+              )}
+            </button>
+
+            {audioFileInfo && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] border border-emerald-500/30">
+                Local: {audioFileInfo.size}
+              </span>
             )}
-          </button>
+          </div>
         </div>
       </div>
+
+      {/* Notification Toast for link/audio actions */}
+      {linkFetchStatus && (
+        <div
+          className={`p-2.5 rounded-xl text-[11px] flex items-center gap-2 border animate-fade-in ${
+            linkFetchStatus.type === 'success'
+              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+              : 'bg-red-500/15 border-red-500/40 text-red-300'
+          }`}
+        >
+          {linkFetchStatus.type === 'success' ? (
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+          ) : (
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+          )}
+          <span>{linkFetchStatus.message}</span>
+        </div>
+      )}
+
+      {/* SMART LINK PASTE & AUTO-FETCH BAR */}
+      <section className="p-3.5 rounded-2xl bg-black/40 border border-theme-glow/30 space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+            <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
+            <span>Smart Music Link (YouTube / Spotify):</span>
+          </label>
+          <span className="text-[10px] text-theme-primary">Auto-extracts cover & info</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="url"
+            placeholder="Paste YouTube or Spotify link here..."
+            className="flex-1 px-3 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary text-[11px]"
+            onChange={(e) => {
+              const val = e.target.value.trim();
+              if (val.includes('youtube.com') || val.includes('youtu.be') || val.includes('spotify.com')) {
+                handleFetchLinkInfo(val);
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => handleFetchLinkInfo(music?.youtubeUrl || music?.spotifyUrl)}
+            disabled={isFetchingLink}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-theme-primary text-black font-bold hover:scale-105 active:scale-95 transition-all text-xs disabled:opacity-50"
+          >
+            {isFetchingLink ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            <span>Fetch Info</span>
+          </button>
+        </div>
+      </section>
 
       {/* 1. Track Title & Artist */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -160,41 +396,170 @@ export default function MusicEditorTab() {
         </div>
       </div>
 
-      {/* 2. Audio MP3 Source URL */}
-      <div className="space-y-1.5">
-        <label className="text-theme-sub flex items-center justify-between font-bold">
-          <span className="flex items-center gap-1.5">
+      {/* 2. Audio Stream URL & Local Audio Upload */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
             <Radio className="w-3.5 h-3.5 text-theme-primary" />
-            <span>Audio Stream URL (MP3/AAC):</span>
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              handleChange(
-                'audioUrl',
-                'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3'
-              )
-            }
-            className="text-[10px] text-theme-primary hover:underline"
-          >
-            Load Demo Lofi MP3
-          </button>
-        </label>
+            <span>Audio Source (MP3 Stream or File):</span>
+          </label>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => audioFileInputRef.current?.click()}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold hover:scale-105 active:scale-95 transition-all text-[10px]"
+              title="Upload MP3 or audio file directly from your computer"
+            >
+              <Upload className="w-3 h-3" />
+              <span>Upload Local Audio (.mp3)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                handleChange(
+                  'audioUrl',
+                  'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3'
+                )
+              }
+              className="text-[10px] text-theme-primary hover:underline"
+            >
+              Demo MP3
+            </button>
+          </div>
+        </div>
+
+        <input
+          ref={audioFileInputRef}
+          type="file"
+          accept="audio/*,.mp3,.wav,.m4a,.ogg"
+          onChange={handleAudioFileChange}
+          className="hidden"
+        />
+
         <input
           type="url"
           value={music?.audioUrl || ''}
           onChange={(e) => handleChange('audioUrl', e.target.value)}
-          placeholder="https://... audio.mp3"
+          placeholder="https://... audio.mp3 or upload local audio file above"
           className="w-full px-3 py-2 rounded-xl bg-black/50 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary text-[11px]"
         />
+
+        {/* Music Downloader Tools Guide Toggle */}
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => setShowDownloaderGuide(!showDownloaderGuide)}
+            className="flex items-center gap-1.5 text-[11px] text-theme-primary hover:underline"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>{showDownloaderGuide ? 'Hide Downloader Guide' : 'How to download music files to upload? (Guide)'}</span>
+          </button>
+        </div>
+
+        {/* Music Downloader Guide Card */}
+        {showDownloaderGuide && (
+          <div className="p-3.5 rounded-2xl bg-black/60 border border-theme-primary/30 space-y-3 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <Download className="w-4 h-4 text-theme-primary" />
+              <h5 className="font-bold text-white text-xs">How to Download & Add Music Tracks:</h5>
+            </div>
+            <p className="text-[11px] text-theme-sub leading-relaxed">
+              Browsers block direct streaming from YouTube or Spotify pages due to copyright/CORS policies.
+              You can easily download your favorite track to an MP3 file using these free tools, then click <strong className="text-white">"Upload Local Audio (.mp3)"</strong> above to play it directly on your site:
+            </p>
+
+            <div className="space-y-2 pt-1">
+              <div className="p-2.5 rounded-xl bg-theme-surface/70 border border-theme-glow/20 flex items-start gap-2.5">
+                <Globe className="w-4 h-4 text-theme-primary shrink-0 mt-0.5" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">1. Cobalt.tools (Recommended Web Tool)</span>
+                    <a
+                      href="https://cobalt.tools"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-theme-primary underline flex items-center gap-0.5 text-[10px]"
+                    >
+                      <span>Open cobalt.tools</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                  <p className="text-[10px] text-theme-sub mt-0.5">
+                    100% free, no ads, open-source. Just paste your YouTube/SoundCloud link, choose "Audio (MP3)", and download!
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-theme-surface/70 border border-theme-glow/20 flex items-start gap-2.5">
+                <Terminal className="w-4 h-4 text-theme-secondary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-white">2. yt-dlp (Best Free Command-line Tool)</span>
+                  <p className="text-[10px] text-theme-sub mt-0.5">
+                    For Windows/Mac: Run in terminal to get high-quality MP3:
+                  </p>
+                  <code className="block mt-1 p-1.5 rounded-lg bg-black text-cyan-300 text-[10px] select-all">
+                    yt-dlp -x --audio-format mp3 &quot;&lt;your-youtube-url&gt;&quot;
+                  </code>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-theme-surface/70 border border-theme-glow/20 flex items-start gap-2.5">
+                <Download className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-white">3. Spotimate / Y2Mate (Instant Browser Converters)</span>
+                  <p className="text-[10px] text-theme-sub mt-0.5">
+                    Search "Spotify to MP3 downloader" or "YouTube to MP3" in Google, download the file, and upload it right here!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 3. Album Cover Artwork URL */}
+      {/* 3. Album Cover Artwork URL & Upload/Crop */}
       <div className="space-y-1.5">
-        <label className="text-theme-sub flex items-center gap-1.5 font-bold">
-          <Image className="w-3.5 h-3.5 text-theme-primary" />
-          <span>Album Cover URL:</span>
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+            <Image className="w-3.5 h-3.5 text-theme-primary" />
+            <span>Album Cover Artwork:</span>
+          </label>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => artworkFileInputRef.current?.click()}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-theme-surface border border-theme-glow/30 hover:border-theme-primary text-theme-primary hover:text-white transition-all text-[10px]"
+              title="Upload cover image from computer"
+            >
+              <Upload className="w-3 h-3" />
+              <span>Upload Local</span>
+            </button>
+            {music?.coverUrl && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCropInitialSrc(music.coverUrl);
+                  setCropModalOpen(true);
+                }}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-theme-primary/10 border border-theme-primary/40 text-theme-primary hover:bg-theme-primary hover:text-black transition-all text-[10px]"
+                title="Crop & adjust cover artwork"
+              >
+                <Crop className="w-3 h-3" />
+                <span>Crop (1:1)</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <input
+          ref={artworkFileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleArtworkFileChange}
+          className="hidden"
+        />
+
         <input
           type="url"
           value={music?.coverUrl || ''}
@@ -202,7 +567,7 @@ export default function MusicEditorTab() {
             setCoverError(false);
             handleChange('coverUrl', e.target.value);
           }}
-          placeholder="https://images.unsplash.com/photo-..."
+          placeholder="https://images.unsplash.com/... or auto-fetched from link"
           className="w-full px-3 py-2 rounded-xl bg-black/50 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary text-[11px]"
         />
       </div>
@@ -292,6 +657,20 @@ export default function MusicEditorTab() {
           />
         </div>
       </div>
+
+      {/* Interactive Image Cropper Modal for Album Cover */}
+      <ImageCropModal
+        isOpen={cropModalOpen}
+        onClose={() => setCropModalOpen(false)}
+        onCropComplete={(croppedDataUrl) => {
+          handleChange('coverUrl', croppedDataUrl);
+          setCoverError(false);
+        }}
+        initialImageSrc={cropInitialSrc}
+        title="Crop Album Artwork (1:1 Square)"
+        defaultAspect="1:1"
+        circularGuide={false}
+      />
     </div>
   );
 }

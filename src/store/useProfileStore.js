@@ -479,6 +479,8 @@ export const useProfileStore = create((set, get) => ({
 
   setIsOwner: (isOwner) => set({ isOwner }),
   setCustomizerOpen: (open) => set({ customizerOpen: open }),
+  openCustomizer: (tab = 'profile') => set({ customizerOpen: true, activeTab: tab }),
+  closeCustomizer: () => set({ customizerOpen: false }),
   toggleCustomizer: () => set((state) => ({ customizerOpen: !state.customizerOpen })),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setLoginModalOpen: (open) => set({ loginModalOpen: open }),

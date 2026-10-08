@@ -178,7 +178,7 @@ export default function LiveCustomizerDrawer() {
   return (
     <AnimatePresence>
       {customizerOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+        <div className="fixed inset-0 z-[60] overflow-hidden flex justify-end pointer-events-auto">
           {/* Backdrop with fade animation */}
           <motion.div
             key="drawer-backdrop"
@@ -186,9 +186,12 @@ export default function LiveCustomizerDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            onClick={() => setCustomizerOpen(false)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCustomizerOpen(false);
+            }}
             aria-hidden="true"
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-0"
           />
 
           {/* Slide-over Drawer with Framer Motion spring physics */}
@@ -201,7 +204,7 @@ export default function LiveCustomizerDrawer() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="relative z-10 w-full max-w-md md:max-w-lg h-full bg-theme-surface/95 backdrop-blur-2xl border-l border-theme-glow/40 shadow-2xl flex flex-col font-sans text-theme-main select-text"
+            className="relative z-10 w-full max-w-md md:max-w-lg h-full bg-theme-surface/95 backdrop-blur-2xl border-l border-theme-glow/40 shadow-2xl flex flex-col font-sans text-theme-main select-text pointer-events-auto"
           >
             {/* Drawer Header */}
             <header className="p-4 sm:p-5 border-b border-theme-glow/20 flex items-center justify-between shrink-0 bg-black/20">

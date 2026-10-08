@@ -169,7 +169,8 @@ export default function FavoritesSection({ favorites: propFavorites, className =
               item.iconOrImage &&
               (item.iconOrImage.startsWith('http://') ||
                 item.iconOrImage.startsWith('https://') ||
-                item.iconOrImage.startsWith('/'));
+                item.iconOrImage.startsWith('/') ||
+                item.iconOrImage.startsWith('data:image/'));
 
             const IconComp =
               !isImage && item.iconOrImage && Icons[item.iconOrImage]

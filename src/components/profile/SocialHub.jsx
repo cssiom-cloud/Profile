@@ -44,7 +44,7 @@ export const getSocialIcon = (iconName = '', url = '') => {
 };
 
 export default function SocialHub({ className = '' }) {
-  const { profile, links, isOwner, setLoginModalOpen, toggleCustomizer } =
+  const { profile, links, isOwner, setLoginModalOpen, setCustomizerOpen, toggleCustomizer } =
     useProfileStore();
 
   const currentYear = new Date().getFullYear();
@@ -60,7 +60,7 @@ export default function SocialHub({ className = '' }) {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'L' || e.key === 'l')) {
         e.preventDefault();
         if (isOwner) {
-          toggleCustomizer();
+          setCustomizerOpen(true);
         } else {
           setLoginModalOpen(true);
         }
@@ -69,11 +69,11 @@ export default function SocialHub({ className = '' }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOwner, toggleCustomizer, setLoginModalOpen]);
+  }, [isOwner, setCustomizerOpen, setLoginModalOpen]);
 
   const handleOwnerClick = () => {
     if (isOwner) {
-      toggleCustomizer();
+      setCustomizerOpen(true);
     } else {
       setLoginModalOpen(true);
     }

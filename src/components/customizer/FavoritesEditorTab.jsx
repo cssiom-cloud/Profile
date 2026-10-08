@@ -11,9 +11,10 @@
  * - Delete favorite items
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useProfileStore } from '../../store/useProfileStore.js';
 import * as Icons from 'lucide-react';
+import ImageCropModal from '../ui/ImageCropModal.jsx';
 import {
   Plus,
   Trash2,
@@ -32,6 +33,9 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  Upload,
+  Crop,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { FAVORITE_CATEGORIES } from '../../data/defaultData.js';
 
@@ -49,9 +53,18 @@ const FAVORITE_ICONS = [
   'Heart',
 ];
 
-// Helper to render icon safely
+// Helper to render icon or custom cropped image safely
 function DynamicFavIcon({ name, className = 'w-3.5 h-3.5' }) {
   if (!name) return <Star className={className} />;
+  if (
+    typeof name === 'string' &&
+    (name.startsWith('data:image/') ||
+      name.startsWith('http://') ||
+      name.startsWith('https://') ||
+      name.startsWith('/'))
+  ) {
+    return <img src={name} alt="Fav thumbnail" className={`${className} object-cover rounded`} />;
+  }
   const Comp = Icons[name] || Star;
   return <Comp className={className} />;
 }
@@ -69,6 +82,18 @@ export default function FavoritesEditorTab() {
   const [category, setCategory] = useState('tech');
   const [badge, setBadge] = useState('');
   const [iconOrImage, setIconOrImage] = useState('Star');
+
+  // Cropper Modal State
+  const [cropModal, setCropModal] = useState({
+    isOpen: false,
+    initialSrc: '',
+    onCropSuccess: null,
+    title: 'Crop Favorite Item Image (1:1 / 16:9)',
+  });
+
+  const addFileInputRef = useRef(null);
+  const editFileInputRef = useRef(null);
+  const activeEditingTargetRef = useRef(null);
 
   // Expanded favorite item for editing
   const [editingId, setEditingId] = useState(null);
@@ -213,20 +238,68 @@ export default function FavoritesEditorTab() {
             />
           </div>
 
-          {/* Icon */}
+          {/* Icon or Custom Cropped Picture */}
           <div className="space-y-1">
-            <label className="text-theme-sub">Icon:</label>
-            <select
-              value={iconOrImage}
-              onChange={(e) => setIconOrImage(e.target.value)}
-              className="w-full px-2 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
-            >
-              {FAVORITE_ICONS.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between">
+              <label className="text-theme-sub">Icon / Image:</label>
+              <button
+                type="button"
+                onClick={() => addFileInputRef.current?.click()}
+                className="text-[10px] text-theme-accent hover:underline flex items-center gap-1"
+                title="Upload & crop custom picture"
+              >
+                <Upload className="w-3 h-3" />
+                <span>Upload Pic</span>
+              </button>
+            </div>
+
+            <input
+              ref={addFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  setCropModal({
+                    isOpen: true,
+                    initialSrc: event.target.result,
+                    onCropSuccess: (dataUrl) => setIconOrImage(dataUrl),
+                    title: 'Crop Favorite Item Picture',
+                  });
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+              }}
+            />
+
+            {iconOrImage && (iconOrImage.startsWith('data:') || iconOrImage.startsWith('http')) ? (
+              <div className="flex items-center gap-2 p-1.5 rounded-xl bg-black/60 border border-theme-accent/40">
+                <img src={iconOrImage} alt="Preview" className="w-6 h-6 rounded object-cover" />
+                <span className="text-[10px] text-emerald-400 flex-1 truncate">Custom Cropped Pic</span>
+                <button
+                  type="button"
+                  onClick={() => setIconOrImage('Star')}
+                  className="text-[10px] text-theme-sub hover:text-white px-1.5 py-0.5 rounded bg-white/10"
+                >
+                  Reset
+                </button>
+              </div>
+            ) : (
+              <select
+                value={iconOrImage}
+                onChange={(e) => setIconOrImage(e.target.value)}
+                className="w-full px-2 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
+              >
+                {FAVORITE_ICONS.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
@@ -379,18 +452,46 @@ export default function FavoritesEditorTab() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] text-theme-sub">Icon:</label>
-                      <select
-                        value={fav.iconOrImage || 'Star'}
-                        onChange={(e) => updateFavorite(fav.id, { iconOrImage: e.target.value })}
-                        className="w-full px-2 py-1.5 rounded-lg bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
-                      >
-                        {FAVORITE_ICONS.map((name) => (
-                          <option key={name} value={name}>
-                            {name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] text-theme-sub">Icon / Pic:</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            activeEditingTargetRef.current = fav.id;
+                            editFileInputRef.current?.click();
+                          }}
+                          className="text-[10px] text-theme-accent hover:underline flex items-center gap-0.5"
+                          title="Upload and crop picture for this card"
+                        >
+                          <Upload className="w-2.5 h-2.5" />
+                          <span>Pic</span>
+                        </button>
+                      </div>
+
+                      {fav.iconOrImage && (fav.iconOrImage.startsWith('data:') || fav.iconOrImage.startsWith('http')) ? (
+                        <div className="flex items-center gap-1.5 p-1 rounded-lg bg-black/60 border border-theme-accent/30">
+                          <img src={fav.iconOrImage} alt="Fav" className="w-5 h-5 rounded object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => updateFavorite(fav.id, { iconOrImage: 'Star' })}
+                            className="text-[9px] text-theme-sub hover:text-white px-1 py-0.5 rounded bg-white/10"
+                          >
+                            To Icon
+                          </button>
+                        </div>
+                      ) : (
+                        <select
+                          value={fav.iconOrImage || 'Star'}
+                          onChange={(e) => updateFavorite(fav.id, { iconOrImage: e.target.value })}
+                          className="w-full px-2 py-1.5 rounded-lg bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
+                        >
+                          {FAVORITE_ICONS.map((name) => (
+                            <option key={name} value={name}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -399,6 +500,48 @@ export default function FavoritesEditorTab() {
           );
         })}
       </div>
+
+      {/* Hidden File Input for Edit Form */}
+      <input
+        ref={editFileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          const targetFavId = activeEditingTargetRef.current;
+          if (!file || !targetFavId) return;
+
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setCropModal({
+              isOpen: true,
+              initialSrc: event.target.result,
+              onCropSuccess: (dataUrl) => {
+                updateFavorite(targetFavId, { iconOrImage: dataUrl });
+              },
+              title: 'Crop Favorite Item Picture',
+            });
+          };
+          reader.readAsDataURL(file);
+          e.target.value = '';
+        }}
+      />
+
+      {/* Interactive Image Cropper Modal */}
+      <ImageCropModal
+        isOpen={cropModal.isOpen}
+        onClose={() => setCropModal((prev) => ({ ...prev, isOpen: false }))}
+        onCropComplete={(croppedDataUrl) => {
+          if (typeof cropModal.onCropSuccess === 'function') {
+            cropModal.onCropSuccess(croppedDataUrl);
+          }
+        }}
+        initialImageSrc={cropModal.initialSrc}
+        title={cropModal.title}
+        defaultAspect="1:1"
+        circularGuide={false}
+      />
     </div>
   );
 }

@@ -118,12 +118,18 @@ export default function ProfileHeader({ profile: propProfile, className = '' }) 
             alt={`${profile.name}'s banner background`}
             onError={() => setBannerError(true)}
             className="w-full h-full object-cover object-center filter brightness-90 contrast-[1.05] transition-transform duration-700 hover:scale-105"
+            style={{
+              maskImage: 'linear-gradient(to bottom, black 0%, black 40%, rgba(0, 0, 0, 0.8) 65%, rgba(0, 0, 0, 0.25) 90%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 40%, rgba(0, 0, 0, 0.8) 65%, rgba(0, 0, 0, 0.25) 90%, transparent 100%)',
+            }}
           />
         ) : (
           <div
             className="w-full h-full relative overflow-hidden"
             style={{
               background: 'linear-gradient(135deg, var(--bg-surface) 0%, rgba(0, 240, 255, 0.12) 50%, var(--bg-base) 100%)',
+              maskImage: 'linear-gradient(to bottom, black 0%, black 45%, rgba(0, 0, 0, 0.3) 85%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 45%, rgba(0, 0, 0, 0.3) 85%, transparent 100%)',
             }}
           >
             {/* Subtle Constellation Grid Pattern */}
@@ -138,8 +144,14 @@ export default function ProfileHeader({ profile: propProfile, className = '' }) 
           </div>
         )}
 
-        {/* Smooth Vignette Overlay to blend into surface below */}
-        <div className="absolute inset-0 bg-gradient-to-t from-theme-base/90 via-theme-base/30 to-transparent pointer-events-none" />
+        {/* Multi-Stage Soft Gradient Fade - Seamlessly blending banner into profile card & name section */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-40 sm:h-52 md:h-60 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.15) 20%, rgba(16, 20, 31, 0.5) 55%, var(--bg-surface) 90%, var(--bg-surface) 100%)',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-theme-surface via-theme-surface/40 to-transparent pointer-events-none" />
 
         {/* Discreet Owner Quick-Edit Button (Owner Mode only) */}
         {isOwner && (

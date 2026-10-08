@@ -144,8 +144,9 @@ export default function App() {
 
               <button
                 type="button"
-                onClick={toggleCustomizer}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-primary text-black font-mono font-bold text-xs shadow-glow hover:scale-105 active:scale-95 transition-all"
+                id="owner-top-edit-hub-btn"
+                onClick={() => setCustomizerOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-primary text-black font-mono font-bold text-xs shadow-glow hover:scale-105 active:scale-95 transition-all cursor-pointer pointer-events-auto"
                 title="Open Live Customizer Drawer"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -205,8 +206,9 @@ export default function App() {
 
           <button
             type="button"
-            onClick={toggleCustomizer}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold shadow-glow hover:scale-105 active:scale-95 transition-all"
+            id="owner-dock-edit-hub-btn"
+            onClick={() => setCustomizerOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold shadow-glow hover:scale-105 active:scale-95 transition-all cursor-pointer pointer-events-auto"
             title="Open Live Customizer Drawer"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
