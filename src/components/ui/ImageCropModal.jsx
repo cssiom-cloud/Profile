@@ -289,10 +289,18 @@ export default function ImageCropModal({
     const boxX = (width - boxW) / 2;
     const boxY = (height - boxH) / 2;
 
-    // Create export offscreen canvas with sharp output resolution
+    // Create export offscreen canvas with sharp, cloud-safe output resolution (<60KB)
     const exportCanvas = document.createElement('canvas');
-    const outputWidth = Math.round(boxW * 2); // 2x for sharp retina output
-    const outputHeight = Math.round(boxH * 2);
+    const maxDimension = (aspectId === '3:1' || aspectId === '16:9') ? 960 : 480;
+    let outputWidth = Math.round(boxW * 2);
+    let outputHeight = Math.round(boxH * 2);
+
+    if (outputWidth > maxDimension || outputHeight > maxDimension) {
+      const resizeScale = Math.min(maxDimension / outputWidth, maxDimension / outputHeight);
+      outputWidth = Math.max(64, Math.round(outputWidth * resizeScale));
+      outputHeight = Math.max(64, Math.round(outputHeight * resizeScale));
+    }
+
     exportCanvas.width = outputWidth;
     exportCanvas.height = outputHeight;
 
@@ -312,13 +320,13 @@ export default function ImageCropModal({
 
     expCtx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
 
-    // Export as high quality webp or jpeg
+    // Export as high quality, quota-safe webp or jpeg
     try {
-      const dataUrl = exportCanvas.toDataURL('image/webp', 0.92);
+      const dataUrl = exportCanvas.toDataURL('image/webp', 0.82);
       onCropComplete(dataUrl);
       onClose();
     } catch {
-      const fallbackUrl = exportCanvas.toDataURL('image/jpeg', 0.9);
+      const fallbackUrl = exportCanvas.toDataURL('image/jpeg', 0.82);
       onCropComplete(fallbackUrl);
       onClose();
     }

@@ -438,7 +438,7 @@ export const useProfileStore = create((set, get) => ({
     // 2. BACKGROUND VALIDATION: Fetch from dataProvider (checks Supabase if active)
     try {
       const timeoutPromise = new Promise((resolve) =>
-        setTimeout(() => resolve(null), 5500)
+        setTimeout(() => resolve(null), 12000)
       );
       const loaded = await Promise.race([dataProvider.fetchData(), timeoutPromise]);
       const safeData = {
@@ -507,7 +507,7 @@ export const useProfileStore = create((set, get) => ({
       const timeoutPromise = new Promise((resolve) =>
         setTimeout(
           () => resolve({ success: true, source: 'local', warning: 'Save finished with local fallback' }),
-          4500
+          16000
         )
       );
 

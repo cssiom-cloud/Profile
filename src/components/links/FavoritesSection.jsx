@@ -260,10 +260,20 @@ export default function FavoritesSection({ favorites: propFavorites, className =
                     <span className="w-1.5 h-1.5 rounded-full bg-current opacity-75" />
                     {item.category}
                   </span>
-                  <span className="text-theme-accent opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    <Maximize2 className="w-3 h-3" />
-                    <span>Read More</span>
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {item.linkUrl && (
+                      <span
+                        title="Contains link"
+                        className="text-theme-accent/80 hover:text-theme-accent flex items-center gap-0.5"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </span>
+                    )}
+                    <span className="text-theme-accent opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                      <Maximize2 className="w-3 h-3" />
+                      <span>Read More</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             );

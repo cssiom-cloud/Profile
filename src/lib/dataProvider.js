@@ -73,7 +73,17 @@ export const dataProvider = {
       : deepClone(DEFAULT_PROFILE_DATA.links);
 
     const normalizedFavorites = Array.isArray(parsed.favorites)
-      ? parsed.favorites
+      ? parsed.favorites.map((f, idx) => ({
+          id: f.id || `fav-${idx}`,
+          category: f.category || 'tech',
+          title: f.title || 'Favorite',
+          subtitle: f.subtitle || undefined,
+          iconOrImage: f.iconOrImage || undefined,
+          badge: f.badge || undefined,
+          bannerUrl: f.bannerUrl || undefined,
+          linkUrl: f.linkUrl || undefined,
+          order: typeof f.order === 'number' ? f.order : idx,
+        }))
       : deepClone(DEFAULT_PROFILE_DATA.favorites);
 
     const normalizedMusic = (parsed.music && typeof parsed.music === 'object' && !Array.isArray(parsed.music))
@@ -279,7 +289,7 @@ export const dataProvider = {
           ]);
 
           return { profileRecord, linksRes, favsRes, settingsRes };
-        })(), 3500);
+        })(), 8000);
 
         if (cloudResult && cloudResult.profileRecord) {
           const { profileRecord, linksRes, favsRes, settingsRes } = cloudResult;
@@ -312,11 +322,15 @@ export const dataProvider = {
                 }))
               : deepClone(DEFAULT_PROFILE_DATA.links),
             favorites: (favsRes.data && favsRes.data.length > 0)
-              ? favsRes.data.map((f) => {
+              ? favsRes.data.map((f, idx) => {
                   const metaList = Array.isArray(settingsRes.data?.custom_css_or_config?.favoritesMeta)
                     ? settingsRes.data.custom_css_or_config.favoritesMeta
                     : [];
-                  const foundMeta = metaList.find((m) => m && m.id === f.id);
+                  const foundMeta =
+                    metaList.find((m) => m && m.id === f.id) ||
+                    metaList.find((m) => m && m.title && m.title.trim().toLowerCase() === (f.title || '').trim().toLowerCase()) ||
+                    metaList.find((m) => m && typeof m.order === 'number' && m.order === (f.sort_order ?? idx)) ||
+                    metaList[idx];
                   return {
                     id: f.id,
                     category: f.category || 'tech',
@@ -325,8 +339,8 @@ export const dataProvider = {
                     iconOrImage: f.icon_or_image || undefined,
                     badge: f.badge || undefined,
                     bannerUrl: foundMeta?.bannerUrl || undefined,
-                    linkUrl: foundMeta?.linkUrl || undefined,
-                    order: f.sort_order ?? 0,
+                    linkUrl: f.link_url || foundMeta?.linkUrl || undefined,
+                    order: f.sort_order ?? idx,
                   };
                 })
               : deepClone(DEFAULT_PROFILE_DATA.favorites),
@@ -486,13 +500,35 @@ export const dataProvider = {
 
           let profileId = existingProfile?.id;
 
+          let cloudAvatarUrl = lightweight.profile.avatarUrl;
+          if (cloudAvatarUrl && cloudAvatarUrl.startsWith('indexeddb://')) {
+            const key = cloudAvatarUrl.replace('indexeddb://', '') || 'custom_avatar_url';
+            try {
+              const stored = await mediaStorage.getItem(key);
+              if (stored) cloudAvatarUrl = stored;
+            } catch (err) {
+              console.warn('[DataProvider] Failed reading avatar for Supabase sync:', err);
+            }
+          }
+
+          let cloudBannerUrl = lightweight.profile.bannerUrl;
+          if (cloudBannerUrl && cloudBannerUrl.startsWith('indexeddb://')) {
+            const key = cloudBannerUrl.replace('indexeddb://', '') || 'custom_banner_url';
+            try {
+              const stored = await mediaStorage.getItem(key);
+              if (stored) cloudBannerUrl = stored;
+            } catch (err) {
+              console.warn('[DataProvider] Failed reading banner for Supabase sync:', err);
+            }
+          }
+
           const profilePayload = {
             name: lightweight.profile.name,
             handle: lightweight.profile.handle,
             bio: lightweight.profile.bio,
             quote: lightweight.profile.quote,
-            avatar_url: lightweight.profile.avatarUrl,
-            banner_url: lightweight.profile.bannerUrl,
+            avatar_url: cloudAvatarUrl,
+            banner_url: cloudBannerUrl,
             location: lightweight.profile.location,
             status_badge: lightweight.profile.statusBadge,
           };
@@ -520,21 +556,31 @@ export const dataProvider = {
           }
 
           if (profileId) {
+            const isUuid = (str) =>
+              typeof str === 'string' &&
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
             // Sync links
             const { error: delLinksErr } = await supabase.from('links').delete().eq('profile_id', profileId);
             if (delLinksErr) throw delLinksErr;
 
             if (lightweight.links && lightweight.links.length > 0) {
-              const linksPayload = lightweight.links.map((link, idx) => ({
-                profile_id: profileId,
-                title: link.title || 'Untitled',
-                url: link.url || 'https://',
-                icon: link.icon || 'Globe',
-                category: link.category || 'social',
-                sort_order: link.order ?? idx,
-                is_active: link.isActive !== false,
-                highlight_color: link.highlightColor || null,
-              }));
+              const linksPayload = lightweight.links.map((link, idx) => {
+                const item = {
+                  profile_id: profileId,
+                  title: link.title || 'Untitled',
+                  url: link.url || 'https://',
+                  icon: link.icon || 'Globe',
+                  category: link.category || 'social',
+                  sort_order: link.order ?? idx,
+                  is_active: link.isActive !== false,
+                  highlight_color: link.highlightColor || null,
+                };
+                if (isUuid(link.id)) {
+                  item.id = link.id;
+                }
+                return item;
+              });
               const { error: insLinksErr } = await supabase.from('links').insert(linksPayload);
               if (insLinksErr) throw insLinksErr;
             }
@@ -543,18 +589,30 @@ export const dataProvider = {
             const { error: delFavsErr } = await supabase.from('favorites').delete().eq('profile_id', profileId);
             if (delFavsErr) throw delFavsErr;
 
+            let insertedFavs = null;
             if (lightweight.favorites && lightweight.favorites.length > 0) {
-              const favsPayload = lightweight.favorites.map((fav, idx) => ({
-                profile_id: profileId,
-                category: fav.category || 'tech',
-                title: fav.title || 'Favorite',
-                subtitle: fav.subtitle || null,
-                icon_or_image: fav.iconOrImage || null,
-                badge: fav.badge || null,
-                sort_order: fav.order ?? idx,
-              }));
-              const { error: insFavsErr } = await supabase.from('favorites').insert(favsPayload);
+              const favsPayload = lightweight.favorites.map((fav, idx) => {
+                const item = {
+                  profile_id: profileId,
+                  category: fav.category || 'tech',
+                  title: fav.title || 'Favorite',
+                  subtitle: fav.subtitle || null,
+                  icon_or_image: fav.iconOrImage || null,
+                  badge: fav.badge || null,
+                  link_url: fav.linkUrl || null,
+                  sort_order: fav.order ?? idx,
+                };
+                if (isUuid(fav.id)) {
+                  item.id = fav.id;
+                }
+                return item;
+              });
+              const { data: insertedData, error: insFavsErr } = await supabase
+                .from('favorites')
+                .insert(favsPayload)
+                .select('id, title, sort_order');
               if (insFavsErr) throw insFavsErr;
+              insertedFavs = insertedData;
             }
 
             // Sync site settings
@@ -571,11 +629,29 @@ export const dataProvider = {
               }
             }
 
-            const favoritesMeta = (lightweight.favorites || []).map((fav) => ({
-              id: fav.id,
-              bannerUrl: fav.bannerUrl || null,
-              linkUrl: fav.linkUrl || null,
-            }));
+            let cloudCoverUrl = lightweight.music.coverUrl;
+            if (cloudCoverUrl && cloudCoverUrl.startsWith('indexeddb://')) {
+              try {
+                const key = cloudCoverUrl.replace('indexeddb://', '') || 'custom_music_cover';
+                const stored = await mediaStorage.getItem(key);
+                if (stored) cloudCoverUrl = stored;
+              } catch (readErr) {
+                console.warn('[DataProvider] Failed reading music cover for Supabase sync:', readErr);
+              }
+            }
+
+            const favoritesMeta = (lightweight.favorites || []).map((fav, idx) => {
+              const matchByOrder = insertedFavs?.find((f) => f.sort_order === (fav.order ?? idx));
+              const matchByTitle = insertedFavs?.find((f) => f.title === fav.title);
+              const realId = matchByOrder?.id || matchByTitle?.id || insertedFavs?.[idx]?.id || fav.id;
+              return {
+                id: realId,
+                title: fav.title,
+                order: fav.order ?? idx,
+                bannerUrl: fav.bannerUrl || null,
+                linkUrl: fav.linkUrl || null,
+              };
+            });
 
             const { error: setErr } = await supabase.from('site_settings').upsert({
               profile_id: profileId,
@@ -586,7 +662,7 @@ export const dataProvider = {
               music_title: lightweight.music.title,
               music_artist: lightweight.music.artist,
               music_audio_url: cloudAudioUrl,
-              music_cover_url: lightweight.music.coverUrl,
+              music_cover_url: cloudCoverUrl,
               music_spotify_url: lightweight.music.spotifyUrl,
               music_youtube_url: lightweight.music.youtubeUrl,
               custom_css_or_config: {
@@ -600,7 +676,7 @@ export const dataProvider = {
             }, { onConflict: 'profile_id' });
             if (setErr) throw setErr;
           }
-        })(), cloudAudioUrl && cloudAudioUrl.length > 50000 ? 35000 : 8000);
+        })(), cloudAudioUrl && cloudAudioUrl.length > 50000 ? 35000 : 15000);
 
         return {
           success: true,

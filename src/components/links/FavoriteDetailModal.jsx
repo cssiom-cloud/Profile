@@ -193,7 +193,21 @@ export default function FavoriteDetailModal({ item, onClose }) {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="pt-2 flex items-center justify-end gap-2 border-t border-theme-glow/20">
+            <div className="pt-2 flex items-center justify-between gap-2 border-t border-theme-glow/20">
+              {item.linkUrl ? (
+                <a
+                  href={item.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 rounded-xl bg-theme-accent/20 hover:bg-theme-accent text-theme-accent hover:text-black font-mono text-xs font-bold border border-theme-accent/40 hover:border-theme-accent transition-all flex items-center gap-1.5 active:scale-95 shadow-glow"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open Link (เปิดลิงก์)</span>
+                </a>
+              ) : (
+                <div />
+              )}
+
               <button
                 type="button"
                 onClick={onClose}
