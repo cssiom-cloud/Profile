@@ -63,11 +63,7 @@ export default function App() {
   const [showPreloader, setShowPreloader] = useState(() => {
     if (typeof window === 'undefined') return false;
     if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') return false;
-    try {
-      return sessionStorage.getItem('has_entered_profile') !== 'true';
-    } catch {
-      return true;
-    }
+    return true;
   });
 
   // Intercept and track console errors for smoke test assertions

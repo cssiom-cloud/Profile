@@ -42,6 +42,41 @@ export const formatTime = (seconds) => {
 };
 
 /**
+ * Resolves audio URL to an absolute, playable URL across local and GitHub Pages deployments
+ */
+export function resolveAudioUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('blob:') ||
+    url.startsWith('data:') ||
+    url.startsWith('indexeddb://')
+  ) {
+    return url;
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      let basePath = window.location.pathname;
+      if (!basePath.endsWith('/')) {
+        if (basePath.includes('.')) {
+          basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
+        } else {
+          basePath = basePath + '/';
+        }
+      }
+      const cleanUrl = url.replace(/^\.?\//, '');
+      return `${window.location.origin}${basePath}${cleanUrl}`;
+    } catch {
+      return url;
+    }
+  }
+
+  return url;
+}
+
+/**
  * Defensive music object extractor with seed fallback
  */
 const getSafeMusic = (storeMusic) => {
@@ -130,6 +165,8 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
         targetUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
       }
 
+      targetUrl = resolveAudioUrl(targetUrl);
+
       if (isCancelled) return;
 
       setIsLocalDeviceOnly(localOnly);
@@ -191,6 +228,8 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
         } else if (!targetUrl) {
           targetUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
         }
+
+        targetUrl = resolveAudioUrl(targetUrl);
 
         if (isMounted) setPlayableSrc(targetUrl);
 
@@ -357,10 +396,9 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
       if (audio.muted) {
         audio.muted = false;
       }
-      if (typeof audio.volume === 'number' && audio.volume < 0.2) {
-        audio.volume = 0.7;
-        setVolume(0.7);
-      }
+      const desiredVol = typeof music.defaultVolume === 'number' && music.defaultVolume > 0 ? music.defaultVolume : 0.7;
+      audio.volume = desiredVol;
+      setVolume(desiredVol);
 
       // Verify audio source is ready and not indexeddb
       if (!audio.src || audio.src.startsWith('indexeddb://') || !playableSrc) {
@@ -375,6 +413,7 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
             targetSrc = music.audioUrl || DEFAULT_PROFILE_DATA.music.audioUrl;
           }
         }
+        targetSrc = resolveAudioUrl(targetSrc);
         setPlayableSrc(targetSrc);
         audio.src = targetSrc;
         audio.load();
@@ -753,6 +792,7 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
                 onMouseUp={handleSeekCommit}
                 onTouchStart={handleSeekStart}
                 onTouchEnd={handleSeekCommit}
+                onClick={handleSeekCommit}
                 disabled={!safeDuration}
                 aria-label="Track progress seek slider"
                 className="w-full h-1.5 bg-black/50 rounded-lg appearance-none cursor-pointer accent-theme-primary focus:outline-none focus:ring-1 focus:ring-theme-primary transition-all"
@@ -853,40 +893,7 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
             </div>
           </div>
 
-          {/* Friendly device notice when custom audio was uploaded only on the owner's PC */}
-          {isLocalDeviceOnly && !audioError && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-theme-primary/10 border border-theme-primary/25 text-theme-primary text-xs font-mono mt-1.5 animate-fade-in shadow-sm">
-              <div className="flex items-center gap-2 min-w-0">
-                <Music className="w-3.5 h-3.5 flex-shrink-0 animate-pulse text-theme-primary" />
-                <span className="text-[11px] leading-normal font-sans text-theme-main">
-                  ไฟล์เสียงนี้อัปโหลดเฉพาะในเครื่องต้นทาง (เล่นเพลงตัวอย่างแทน)
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-[11px] font-sans shrink-0 pl-5 sm:pl-0">
-                <span className="text-theme-sub text-[10px]">ฟังเพลงเต็ม:</span>
-                {music.spotifyUrl && (
-                  <a
-                    href={music.spotifyUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-bold text-[#1db954] hover:underline"
-                  >
-                    Spotify
-                  </a>
-                )}
-                {music.youtubeUrl && (
-                  <a
-                    href={music.youtubeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-bold text-[#ff4444] hover:underline"
-                  >
-                    YouTube
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
+
 
           {/* Graceful Audio Error Notification Banner */}
           {audioError && !isLocalDeviceOnly && (

@@ -1,56 +1,51 @@
 /**
  * src/components/ui/SitePreloader.jsx
- * Aesthetic Cyber Experience Entrance & Audio Preloader
+ * Authentic Cyber Preloader & Audio Initializer
  *
  * Capabilities:
- * - Solves browser autoplay policy rejections on mobile/desktop by providing
- *   a high-aesthetic "Click/Tap to Enter" gateway.
- * - Buffers and warms up the audio engine during the entrance sequence.
- * - Displays avatar aura, music track title & artist, and cyber loading visualizer.
- * - Single click/tap satisfies browser user gesture: unlocks AudioContext and starts playback.
- * - Smooth Framer Motion curtain dissolve transition.
+ * - Real, automatic loading screen (no questioning/choice buttons).
+ * - Smooth 0% -> 100% progress animation with cyber phase messages.
+ * - Buffers and preloads the audio stream during the loading progress.
+ * - Captures any touch or click gesture during loading to unlock audio autoplay.
+ * - Automatically dissolves and transitions to the main profile on 100% completion.
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
-  Volume2,
-  VolumeX,
   Disc,
-  Play,
-  Headphones,
+  Music,
+  CheckCircle2,
   ShieldCheck,
-  Radio,
 } from 'lucide-react';
 import { useProfileStore } from '../../store/useProfileStore.js';
 import { mediaStorage } from '../../lib/mediaStorage.js';
+import { resolveAudioUrl } from '../audio/MusicPlayer.jsx';
 
 export default function SitePreloader({ onEnter }) {
-  const { profile, music, settings } = useProfileStore();
+  const { profile, music } = useProfileStore();
 
   const [progress, setProgress] = useState(0);
-  const [isAudioReady, setIsAudioReady] = useState(false);
-  const [hasEntered, setHasEntered] = useState(false);
-  const [enterMode, setEnterMode] = useState('sound'); // 'sound' | 'silent'
+  const [loadingPhase, setLoadingPhase] = useState('กำลังเชื่อมต่อระบบ Cloud Profile...');
+  const [isDismissed, setIsDismissed] = useState(false);
   const audioPreloadRef = useRef(null);
 
-  // Buffer and preload track
+  // Capture any touch/click during loading to satisfy browser gesture
+  const registerUserGesture = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('play-profile-audio'));
+      }
+    } catch {}
+  };
+
+  // Preload audio and advance loading bar
   useEffect(() => {
     let isCancelled = false;
 
-    // Simulate cyber asset scanning while resolving audio
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          return 100;
-        }
-        return prev + Math.floor(Math.random() * 25) + 10;
-      });
-    }, 120);
-
-    const prepareAudio = async () => {
+    // Phase 1: Preload Audio Track
+    const preloadAudio = async () => {
       try {
         let src = music?.audioUrl;
         if (src && src.startsWith('indexeddb://')) {
@@ -59,90 +54,104 @@ export default function SitePreloader({ onEnter }) {
           if (resolved) src = resolved;
         }
 
-        if (src && typeof window !== 'undefined' && typeof Audio !== 'undefined') {
+        const resolvedSrc = resolveAudioUrl(src);
+        if (resolvedSrc && typeof window !== 'undefined' && typeof Audio !== 'undefined') {
           const testAudio = new Audio();
-          testAudio.src = src;
+          testAudio.src = resolvedSrc;
           testAudio.preload = 'auto';
           testAudio.muted = true;
           audioPreloadRef.current = testAudio;
-
-          testAudio.oncanplaythrough = () => {
-            if (!isCancelled) setIsAudioReady(true);
-          };
-          testAudio.onerror = () => {
-            if (!isCancelled) setIsAudioReady(true);
-          };
           testAudio.load();
-        } else {
-          setIsAudioReady(true);
         }
-      } catch {
-        if (!isCancelled) setIsAudioReady(true);
+      } catch (err) {
+        console.warn('[Preloader] Audio preload notice:', err);
       }
     };
 
-    prepareAudio();
+    preloadAudio();
+
+    // Smooth cyber progress simulation
+    const startTime = Date.now();
+    const duration = 1500; // 1.5 seconds for snappy feel
+
+    const interval = setInterval(() => {
+      if (isCancelled) return;
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min(100, Math.round((elapsed / duration) * 100));
+
+      setProgress(pct);
+
+      if (pct < 30) {
+        setLoadingPhase('กำลังเชื่อมต่อระบบ Cloud Profile...');
+      } else if (pct < 70) {
+        setLoadingPhase('กำลังโหลดเพลงและข้อมูลโปรไฟล์...');
+      } else if (pct < 100) {
+        setLoadingPhase('กำลังเตรียมพร้อมประสบการณ์เว็บไซต์...');
+      } else {
+        setLoadingPhase('โหลดเสร็จสมบูรณ์ 100%');
+        clearInterval(interval);
+
+        // Auto transition after showing complete state
+        setTimeout(() => {
+          if (!isCancelled) {
+            try {
+              if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.setItem('has_entered_profile', 'true');
+              }
+            } catch {}
+
+            // Trigger audio playback
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('play-profile-audio'));
+            }
+
+            setIsDismissed(true);
+            if (onEnter) {
+              onEnter();
+            }
+          }
+        }, 300);
+      }
+    }, 40);
 
     return () => {
       isCancelled = true;
-      clearInterval(timer);
+      clearInterval(interval);
       if (audioPreloadRef.current) {
         audioPreloadRef.current.src = '';
       }
     };
-  }, [music?.audioUrl]);
+  }, [music?.audioUrl, onEnter]);
 
-  // Entrance handler: satisfies user interaction and starts music
-  const handleEnterExperience = (withSound = true) => {
-    if (hasEntered) return;
-    setHasEntered(true);
-
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem('has_entered_profile', 'true');
-      }
-    } catch {
-      // Ignore sessionStorage errors
-    }
-
-    // Trigger audio playback event with user gesture
-    if (withSound) {
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('play-profile-audio'));
-      }
-    }
-
-    if (onEnter) {
-      onEnter(withSound);
-    }
-  };
-
-  if (hasEntered) return null;
-
-  const displayProgress = Math.min(100, progress);
-  const isReady = displayProgress >= 100;
+  if (isDismissed) return null;
 
   return (
     <AnimatePresence>
       <motion.div
+        key="site-preloader-curtain"
         initial={{ opacity: 1 }}
-        exit={{ opacity: 0, scale: 1.05 }}
-        transition={{ duration: 0.6, ease: 'easeInOut' }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#06080e]/95 backdrop-blur-2xl text-white select-none overflow-hidden"
+        exit={{ opacity: 0, scale: 1.03 }}
+        transition={{ duration: 0.5, ease: 'easeInOut' }}
+        onClick={registerUserGesture}
+        onTouchStart={registerUserGesture}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#06080e] text-white select-none overflow-hidden cursor-wait"
       >
-        {/* Animated Background Glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.12)_0%,transparent_70%)] pointer-events-none" />
+        {/* Animated Background Ambience */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,240,255,0.15)_0%,rgba(6,8,14,0.95)_70%)] pointer-events-none" />
 
-        {/* Floating Ambient Rings */}
-        <div className="absolute w-[500px] h-[500px] rounded-full border border-theme-glow/10 animate-pulse pointer-events-none" />
-        <div className="absolute w-[700px] h-[700px] rounded-full border border-theme-glow/5 animate-pulse pointer-events-none" />
+        {/* Animated Radial Rings */}
+        <div
+          className="absolute w-[320px] h-[320px] sm:w-[480px] sm:h-[480px] rounded-full border border-theme-primary/10 animate-ping opacity-25 pointer-events-none"
+          style={{ animationDuration: '3s' }}
+        />
+        <div className="absolute w-[500px] h-[500px] sm:w-[700px] sm:h-[700px] rounded-full border border-theme-primary/5 animate-pulse pointer-events-none" />
 
-        <div className="relative z-10 max-w-md w-full text-center space-y-6">
-          {/* Profile Monogram / Avatar with Glowing Aura */}
+        <div className="relative z-10 max-w-sm w-full text-center space-y-6 px-4">
+          {/* Center Avatar with Pulsing Energy Aura */}
           <div className="flex flex-col items-center">
             <div className="relative">
-              <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-theme-primary via-theme-secondary to-theme-accent blur-md opacity-70 animate-pulse" />
-              <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-theme-primary/80 bg-black/80 flex items-center justify-center shadow-glow">
+              <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-theme-primary via-theme-secondary to-theme-accent blur-lg opacity-75 animate-pulse" />
+              <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-theme-primary bg-black/90 flex items-center justify-center shadow-[0_0_30px_rgba(0,240,255,0.4)]">
                 {profile?.avatarUrl ? (
                   <img
                     src={profile.avatarUrl}
@@ -150,92 +159,80 @@ export default function SitePreloader({ onEnter }) {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="font-bold text-2xl text-theme-primary font-mono">
+                  <span className="font-bold text-3xl text-theme-primary font-mono">
                     {(profile?.name || 'P').charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
+
+              {/* Spinning Tech Ring Indicator */}
+              <div className="absolute -inset-1 rounded-full border-2 border-dashed border-theme-primary/40 animate-spin-slow pointer-events-none" />
             </div>
 
-            <div className="mt-3">
+            <div className="mt-4">
               <h1 className="text-xl sm:text-2xl font-bold font-sans text-white tracking-tight flex items-center justify-center gap-1.5">
-                <span>{profile?.name || 'Profile Experience'}</span>
+                <span>{profile?.name || 'Loading Profile...'}</span>
                 <ShieldCheck className="w-4 h-4 text-theme-primary shrink-0" />
               </h1>
-              <p className="text-xs font-mono text-theme-primary opacity-90 mt-0.5">
+              <p className="text-xs font-mono text-theme-primary/90 mt-0.5">
                 {profile?.handle || '@creative'}
               </p>
             </div>
           </div>
 
-          {/* Music Track Preview Card */}
-          <div className="p-4 rounded-2xl bg-black/60 border border-theme-glow/30 backdrop-blur-md space-y-3 shadow-glow">
-            <div className="flex items-center gap-3">
-              <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-black border border-theme-primary/40 shrink-0 flex items-center justify-center">
-                {music?.coverUrl ? (
-                  <img
-                    src={music.coverUrl}
-                    alt="Cover"
-                    className="w-full h-full object-cover"
-                  />
+          {/* Dynamic Loading Box */}
+          <div className="p-4 rounded-2xl bg-black/70 border border-theme-primary/30 backdrop-blur-xl space-y-3.5 shadow-2xl">
+            {/* Progress Header */}
+            <div className="flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-2 text-theme-primary">
+                {progress < 100 ? (
+                  <Disc className="w-4 h-4 animate-spin text-theme-primary" />
                 ) : (
-                  <Disc className="w-6 h-6 text-theme-primary animate-spin" />
+                  <CheckCircle2 className="w-4 h-4 text-green-400" />
                 )}
+                <span className="font-semibold tracking-wider">
+                  {progress < 100 ? 'SYSTEM INITIALIZING' : 'SYSTEM READY'}
+                </span>
               </div>
-
-              <div className="min-w-0 flex-1 text-left">
-                <div className="flex items-center gap-1.5 text-[10px] font-mono text-theme-primary">
-                  <Radio className="w-3 h-3 animate-pulse" />
-                  <span>AUDIO ENGINE READY</span>
-                </div>
-                <h3 className="font-bold text-white text-xs sm:text-sm truncate">
-                  {music?.title || 'Featured Track'}
-                </h3>
-                <p className="text-[11px] text-theme-sub truncate font-medium">
-                  {music?.artist || 'Artist'}
-                </p>
-              </div>
+              <span className="font-bold text-white tracking-widest">{progress}%</span>
             </div>
 
-            {/* Audio Preloading Bar */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[10px] font-mono text-theme-sub">
-                <span>{isReady ? 'STREAM BUFFERED • 100%' : 'BUFFERING AUDIO STREAM...'}</span>
-                <span>{displayProgress}%</span>
-              </div>
-              <div className="h-1.5 w-full bg-black/80 rounded-full overflow-hidden border border-theme-glow/20">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-theme-primary via-theme-secondary to-theme-accent"
-                  style={{ width: `${displayProgress}%` }}
-                />
-              </div>
+            {/* High-Tech Progress Bar */}
+            <div className="relative h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-0.5">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-theme-primary via-theme-secondary to-theme-accent shadow-[0_0_15px_rgba(0,240,255,0.7)]"
+                style={{ width: `${progress}%` }}
+                transition={{ ease: 'easeOut', duration: 0.1 }}
+              />
+            </div>
+
+            {/* Status Phase Label */}
+            <div className="flex items-center justify-center gap-1.5 text-xs font-mono text-gray-300">
+              <Sparkles className="w-3 h-3 text-theme-primary animate-pulse" />
+              <span className="truncate">{loadingPhase}</span>
             </div>
           </div>
 
-          {/* Interactive Entrance Actions (Bypasses Browser Autoplay Lock) */}
-          <div className="space-y-2.5 pt-2">
-            <button
-              type="button"
-              onClick={() => handleEnterExperience(true)}
-              className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-theme-primary to-theme-secondary hover:brightness-110 active:scale-95 text-black font-bold font-sans text-sm flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(0,240,255,0.4)] transition-all cursor-pointer group"
-            >
-              <Headphones className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              <span>CLICK TO ENTER • แตะเพื่อเข้าสู่เว็บไซต์</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleEnterExperience(false)}
-              className="w-full py-2 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-theme-sub hover:text-white text-xs font-mono transition-all flex items-center justify-center gap-1.5"
-            >
-              <VolumeX className="w-3.5 h-3.5" />
-              <span>เข้าชมแบบปิดเสียง (Silent Mode)</span>
-            </button>
+          {/* Aesthetic Mini Equalizer */}
+          <div className="flex items-center justify-center gap-1.5 pt-1 opacity-70">
+            <span className="w-1 h-3 bg-theme-primary rounded-full animate-pulse" />
+            <span
+              className="w-1 h-5 bg-theme-primary rounded-full animate-pulse"
+              style={{ animationDelay: '150ms' }}
+            />
+            <span
+              className="w-1 h-2 bg-theme-primary rounded-full animate-pulse"
+              style={{ animationDelay: '300ms' }}
+            />
+            <span
+              className="w-1 h-6 bg-theme-primary rounded-full animate-pulse"
+              style={{ animationDelay: '450ms' }}
+            />
+            <span
+              className="w-1 h-4 bg-theme-primary rounded-full animate-pulse"
+              style={{ animationDelay: '200ms' }}
+            />
           </div>
-
-          <p className="text-[10px] font-mono text-theme-sub/70">
-            แตะที่ปุ่มเพื่อเริ่มฟังเพลงทันที • รองรับทุกเบราว์เซอร์และมือถือ 100%
-          </p>
         </div>
       </motion.div>
     </AnimatePresence>
