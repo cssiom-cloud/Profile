@@ -137,6 +137,18 @@ CREATE POLICY "Authenticated users can manage site settings" ON public.site_sett
     FOR ALL USING (auth.role() = 'authenticated');
 
 -- =============================================================================
+-- 3.2 OPTIONAL: DIRECT SINGLE-OWNER WRITE POLICIES (ALLOW ANON UPDATES)
+-- =============================================================================
+-- If you prefer your web app to save edits directly to Supabase without
+-- logging in via Supabase Email/Password Auth every time, run the snippet below:
+--
+-- CREATE POLICY "Anon can update profiles" ON public.profiles FOR UPDATE USING (true) WITH CHECK (true);
+-- CREATE POLICY "Anon can insert profiles" ON public.profiles FOR INSERT WITH CHECK (true);
+-- CREATE POLICY "Anon can manage links" ON public.links FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Anon can manage favorites" ON public.favorites FOR ALL USING (true) WITH CHECK (true);
+-- CREATE POLICY "Anon can manage site settings" ON public.site_settings FOR ALL USING (true) WITH CHECK (true);
+
+-- =============================================================================
 -- 4. AUTOMATIC updated_at TRIGGER FUNCTION
 -- =============================================================================
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
