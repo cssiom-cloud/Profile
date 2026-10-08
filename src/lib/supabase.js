@@ -9,6 +9,25 @@ const rawUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.me
 const rawAnonKey = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_ANON_KEY : '';
 
 /**
+ * Normalizes Supabase URL, auto-filling https:// and .supabase.co if only project ref ID was provided
+ * @param {string} url
+ * @returns {string}
+ */
+export const normalizeSupabaseUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  let clean = url.trim();
+  if (!clean) return '';
+  if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+    if (!clean.includes('.')) {
+      clean = `https://${clean}.supabase.co`;
+    } else {
+      clean = `https://${clean}`;
+    }
+  }
+  return clean;
+};
+
+/**
  * Validates whether valid, usable Supabase credentials are configured in the environment.
  * Rejects undefined, empty, or default template placeholder strings.
  * @returns {boolean}
@@ -18,7 +37,7 @@ export const isSupabaseConfigured = () => {
     return false;
   }
 
-  const url = rawUrl.trim();
+  const url = normalizeSupabaseUrl(rawUrl);
   const anonKey = rawAnonKey.trim();
 
   if (!url || !anonKey) {
@@ -53,7 +72,7 @@ export const isSupabaseConfigured = () => {
  * Returns null client when unconfigured so caller logic never crashes.
  */
 export const supabase = isSupabaseConfigured()
-  ? createClient(rawUrl.trim(), rawAnonKey.trim(), {
+  ? createClient(normalizeSupabaseUrl(rawUrl), rawAnonKey.trim(), {
       auth: {
         persistSession: true,
         autoRefreshToken: true,

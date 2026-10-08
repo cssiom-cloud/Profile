@@ -473,20 +473,50 @@ export default function MusicEditorTab() {
               <div className="p-2.5 rounded-xl bg-theme-surface/70 border border-theme-glow/20 flex items-start gap-2.5">
                 <Globe className="w-4 h-4 text-theme-primary shrink-0 mt-0.5" />
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-white">1. Cobalt.tools (Recommended Web Tool)</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-white">1. cnvmp3.com & ytmp3.nu (แนะนำที่สุด โหลดได้ 100%)</span>
                     <a
-                      href="https://cobalt.tools"
+                      href="https://cnvmp3.com"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-theme-primary underline flex items-center gap-0.5 text-[10px]"
                     >
-                      <span>Open cobalt.tools</span>
+                      <span>เปิด cnvmp3.com</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                    <a
+                      href="https://ytmp3.nu"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-theme-primary underline flex items-center gap-0.5 text-[10px]"
+                    >
+                      <span>เปิด ytmp3.nu</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                  <p className="text-[10px] text-theme-sub mt-0.5 leading-relaxed">
+                    ฟรี 100% ไม่มีปัญหาปิดกั้น YouTube แค่วางลิงก์เพลง YouTube แล้วกด Download MP3 ได้ไฟล์เพลงทันที!
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-theme-surface/70 border border-theme-glow/20 flex items-start gap-2.5">
+                <Globe className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">2. OnlyMP3 / Dirpy (เว็บสำรอง)</span>
+                    <a
+                      href="https://en.onlymp3.to"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-amber-400 underline flex items-center gap-0.5 text-[10px]"
+                    >
+                      <span>เปิด onlymp3.to</span>
                       <ExternalLink className="w-2.5 h-2.5" />
                     </a>
                   </div>
                   <p className="text-[10px] text-theme-sub mt-0.5">
-                    100% free, no ads, open-source. Just paste your YouTube/SoundCloud link, choose "Audio (MP3)", and download!
+                    แปลง YouTube เป็นไฟล์เสียง MP3 ความคมชัดสูงใน 1 คลิก
                   </p>
                 </div>
               </div>
@@ -494,23 +524,13 @@ export default function MusicEditorTab() {
               <div className="p-2.5 rounded-xl bg-theme-surface/70 border border-theme-glow/20 flex items-start gap-2.5">
                 <Terminal className="w-4 h-4 text-theme-secondary shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-white">2. yt-dlp (Best Free Command-line Tool)</span>
+                  <span className="font-bold text-white">3. yt-dlp (สำหรับคอมพิวเตอร์ / ไม่มีวันโดนแบน)</span>
                   <p className="text-[10px] text-theme-sub mt-0.5">
-                    For Windows/Mac: Run in terminal to get high-quality MP3:
+                    เปิด Terminal บน Windows แล้วพิมพ์คำสั่งนี้:
                   </p>
                   <code className="block mt-1 p-1.5 rounded-lg bg-black text-cyan-300 text-[10px] select-all">
-                    yt-dlp -x --audio-format mp3 &quot;&lt;your-youtube-url&gt;&quot;
+                    yt-dlp -x --audio-format mp3 &quot;&lt;ลิงก์ YouTube ที่นี่&gt;&quot;
                   </code>
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-theme-surface/70 border border-theme-glow/20 flex items-start gap-2.5">
-                <Download className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-white">3. Spotimate / Y2Mate (Instant Browser Converters)</span>
-                  <p className="text-[10px] text-theme-sub mt-0.5">
-                    Search "Spotify to MP3 downloader" or "YouTube to MP3" in Google, download the file, and upload it right here!
-                  </p>
                 </div>
               </div>
             </div>
