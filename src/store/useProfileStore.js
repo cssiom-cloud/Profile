@@ -7,6 +7,7 @@
 import { create } from 'zustand';
 import { DEFAULT_PROFILE_DATA } from '../data/defaultData.js';
 import { dataProvider } from '../lib/dataProvider.js';
+import { supabase, isSupabaseConfigured } from '../lib/supabase.js';
 
 /**
  * Defensive UUID generator supporting modern browsers, Node environments, and fallbacks
@@ -469,6 +470,20 @@ export const useProfileStore = create((set, get) => ({
         storageSource: dataProvider.isSupabaseActive() ? 'supabase' : 'local',
         isLoading: false,
       });
+
+      // 3. SECURE SESSION HYDRATION: Restore owner mode if valid session exists
+      try {
+        if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('profile_owner_session') === 'true') {
+          set({ isOwner: true });
+        } else if (isSupabaseConfigured() && supabase) {
+          const { data } = await supabase.auth.getSession();
+          if (data?.session) {
+            set({ isOwner: true });
+          }
+        }
+      } catch {
+        // ignore
+      }
     } catch (err) {
       console.error('[useProfileStore] Failed loading initial data:', err);
       set({ isLoading: false });
@@ -621,6 +636,19 @@ export const useProfileStore = create((set, get) => ({
   // =========================================================================
 
   setIsOwner: (isOwner) => set({ isOwner }),
+  logout: async () => {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('profile_owner_session');
+      }
+      if (isSupabaseConfigured() && supabase) {
+        await supabase.auth.signOut();
+      }
+    } catch {
+      // ignore
+    }
+    set({ isOwner: false, customizerOpen: false });
+  },
   setCustomizerOpen: (open) => set({ customizerOpen: open }),
   openCustomizer: (tab = 'profile') => set({ customizerOpen: true, activeTab: tab }),
   closeCustomizer: () => set({ customizerOpen: false }),

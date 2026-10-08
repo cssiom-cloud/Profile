@@ -50,6 +50,7 @@ export default function App() {
     updateProfile,
     updateSettings,
     saveChanges,
+    logout,
     setCustomizerOpen,
     openCustomizer,
     toggleCustomizer,
@@ -126,7 +127,7 @@ export default function App() {
 
       {/* 2. Top Owner-Only Bar: แสดงเฉพาะเจ้าของเว็บเมื่อล็อกอินแล้วเท่านั้น (คนที่เข้ามาดูจะไม่เห็นแถบนี้!) */}
       {isOwner && (
-        <div className="relative z-30 max-w-3xl mx-auto pt-4 px-4 sm:px-6 md:px-8 animate-fade-in">
+        <div className="relative z-30 max-w-3xl lg:max-w-6xl xl:max-w-7xl mx-auto pt-4 px-4 sm:px-6 md:px-8 animate-fade-in">
           <header className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-theme-surface/90 backdrop-blur-xl border border-theme-primary/40 shadow-glow">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shadow-glow" />
@@ -158,8 +159,8 @@ export default function App() {
 
               <button
                 type="button"
-                onClick={() => setIsOwner(false)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-mono transition-all"
+                onClick={() => logout()}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-mono transition-all cursor-pointer"
                 title="Exit Owner Mode"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -171,23 +172,34 @@ export default function App() {
       )}
 
       {/* 3. Main Content Container สำหรับผู้เข้าชมทุกคน (Clean & Aesthetic) */}
-      <main className="relative z-10 max-w-3xl mx-auto px-4 py-8 sm:py-12 space-y-8">
-        {/* Profile Header (Avatar, Bio, Quote, Status Pill, Location) */}
-        <ProfileHeader />
+      <main className="relative z-10 max-w-3xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 py-8 sm:py-12 lg:py-10">
+        <div className="lg:p-8 xl:p-10 lg:rounded-3xl lg:bg-theme-surface/75 lg:backdrop-blur-2xl lg:border lg:border-theme-glow/30 lg:shadow-2xl transition-all duration-500">
+          {/* Horizontal split on Desktop (lg:flex lg:gap-8), Vertical flow on Mobile */}
+          <div className="flex flex-col lg:flex-row lg:items-start lg:gap-8 xl:gap-10">
+            {/* Left Column (Desktop) / Top Flow (Mobile) */}
+            <div className="w-full lg:w-5/12 xl:w-[440px] shrink-0 space-y-6 lg:space-y-8 lg:sticky lg:top-8 self-start">
+              {/* Profile Header (Avatar, Bio, Quote, Status Pill, Location) */}
+              <ProfileHeader />
 
-        {/* Music Player & Soundwave Visualizer */}
-        <section aria-label="Audio Experience" className="w-full">
-          <MusicPlayer />
-        </section>
+              {/* Music Player & Soundwave Visualizer */}
+              <section aria-label="Audio Experience" className="w-full">
+                <MusicPlayer />
+              </section>
+            </div>
 
-        {/* Categorized Links Grid (Bento / Stack) */}
-        <LinksGrid />
+            {/* Right Column (Desktop) / Bottom Flow (Mobile) */}
+            <div className="w-full lg:w-7/12 xl:flex-1 min-w-0 space-y-6 lg:space-y-8 mt-6 lg:mt-0">
+              {/* Categorized Links Grid (Bento / Stack) */}
+              <LinksGrid />
 
-        {/* Favorites & Lifestyle Showcase */}
-        <FavoritesSection />
+              {/* Favorites & Lifestyle Showcase */}
+              <FavoritesSection />
+            </div>
+          </div>
 
-        {/* Social Hub & Footer พร้อมปุ่มล็อกอินเจ้าของเว็บแบบแนบเนียน */}
-        <SocialHub />
+          {/* Social Hub & Footer พร้อมปุ่มล็อกอินเจ้าของเว็บแบบแนบเนียน */}
+          <SocialHub />
+        </div>
       </main>
 
       {/* 4. Modals & Drawers */}
@@ -212,7 +224,10 @@ export default function App() {
           <button
             type="button"
             id="owner-dock-edit-hub-btn"
-            onClick={() => setCustomizerOpen(true)}
+            onClick={() => {
+              toggleCustomizer();
+              setCustomizerOpen(true);
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold shadow-glow hover:scale-105 active:scale-95 transition-all cursor-pointer pointer-events-auto"
             title="Open Live Customizer Drawer"
           >
@@ -222,8 +237,11 @@ export default function App() {
 
           <button
             type="button"
-            onClick={() => setIsOwner(false)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all active:scale-95"
+            onClick={() => {
+              setIsOwner(false);
+              logout();
+            }}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all active:scale-95 cursor-pointer"
             title="Exit Owner Mode"
           >
             <LogOut className="w-3.5 h-3.5" />

@@ -91,6 +91,7 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
   const [isLoading, setIsLoading] = useState(false);
   const [audioError, setAudioError] = useState(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
+  const [autoplayWaiting, setAutoplayWaiting] = useState(false);
 
   // Safe numerical duration and progress calculation
   const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
@@ -128,10 +129,10 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
         audio.src = targetUrl;
         audio.load();
 
-        if (isPlaying) {
+        if (isPlaying || music.isAutoPlay) {
           audio.play().catch((err) => {
-            console.warn('[MusicPlayer] Auto-play on track URL change prevented:', err);
-            setIsPlaying(false);
+            console.warn('[MusicPlayer] Play on track URL change prevented:', err);
+            if (!music.isAutoPlay) setIsPlaying(false);
           });
         }
       }
@@ -142,7 +143,95 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
     return () => {
       isCancelled = true;
     };
-  }, [music.audioUrl, isPlaying]);
+  }, [music.audioUrl, isPlaying, music.isAutoPlay]);
+
+  // ---------------------------------------------------------------------------
+  // Lifecycle: Auto-Play Handler on initial mount & setting toggle
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!music.isAutoPlay) {
+      setAutoplayWaiting(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const startAutoplay = async () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      try {
+        let targetUrl = music.audioUrl;
+        if (targetUrl && targetUrl.startsWith('indexeddb://')) {
+          const key = targetUrl.replace('indexeddb://', '') || 'custom_audio_file';
+          const playable = await mediaStorage.getPlayableUrl(key);
+          if (playable) targetUrl = playable;
+        }
+
+        if (!audio.src || !audio.src.includes(targetUrl.slice(0, 30))) {
+          audio.src = targetUrl;
+          audio.load();
+        }
+
+        const vol = typeof music.defaultVolume === 'number' ? music.defaultVolume : 0.7;
+        audio.volume = Math.max(0, Math.min(1, vol));
+        audio.muted = vol === 0;
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+          if (isMounted) {
+            setIsPlaying(true);
+            setAutoplayWaiting(false);
+          }
+        }
+      } catch (err) {
+        console.info('[MusicPlayer] Browser autoplay policy prevented sound without user gesture:', err);
+        if (isMounted) {
+          setAutoplayWaiting(true);
+        }
+
+        // Setup universal one-time interaction listeners on the window
+        const unlockAudio = async () => {
+          try {
+            const el = audioRef.current;
+            if (el) {
+              const vol = typeof music.defaultVolume === 'number' ? music.defaultVolume : 0.7;
+              el.volume = Math.max(0, Math.min(1, vol));
+              el.muted = vol === 0;
+              await el.play();
+              if (isMounted) {
+                setIsPlaying(true);
+                setAutoplayWaiting(false);
+              }
+            }
+          } catch (gestureErr) {
+            console.warn('[MusicPlayer] Gesture unlock failed:', gestureErr);
+          } finally {
+            cleanup();
+          }
+        };
+
+        const cleanup = () => {
+          window.removeEventListener('click', unlockAudio);
+          window.removeEventListener('keydown', unlockAudio);
+          window.removeEventListener('touchstart', unlockAudio);
+          window.removeEventListener('pointerdown', unlockAudio);
+        };
+
+        window.addEventListener('click', unlockAudio, { once: true, passive: true });
+        window.addEventListener('keydown', unlockAudio, { once: true, passive: true });
+        window.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+        window.addEventListener('pointerdown', unlockAudio, { once: true, passive: true });
+      }
+    };
+
+    startAutoplay();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [music.isAutoPlay, music.audioUrl, music.defaultVolume]);
 
   // Synchronize volume in real-time when music.defaultVolume updates in store
   useEffect(() => {
@@ -519,6 +608,17 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
                   <span className="px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[9px] font-mono border border-green-500/30 animate-pulse">
                     PLAYING
                   </span>
+                )}
+                {autoplayWaiting && !isPlaying && (
+                  <button
+                    type="button"
+                    onClick={togglePlay}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-theme-primary/20 hover:bg-theme-primary/30 border border-theme-primary/40 text-theme-primary text-[9px] font-mono animate-pulse cursor-pointer shadow-glow transition-all"
+                    title="Browser autoplay policy waiting for click. Click to start!"
+                  >
+                    <Sparkles className="w-2.5 h-2.5" />
+                    <span>คลิกเพื่อเริ่มเพลง</span>
+                  </button>
                 )}
               </div>
               <h3 className="text-base sm:text-lg font-bold font-sans text-theme-main truncate leading-tight">

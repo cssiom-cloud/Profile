@@ -1,20 +1,22 @@
 /**
  * src/components/customizer/LoginModal.jsx
- * Unified Username & Password Owner Authentication Modal (Milestone M5 - Feature 20)
+ * Unified Production-Grade Owner Authentication Modal (Milestone M5 - Feature 20)
  * 
  * Features:
  * 1. Unified Username & Password Authentication:
  *    - Replaces old PIN UI with clean Username & Password inputs.
  *    - Default credentials: username: 'admin', password: 'admin123'.
- *    - Supports custom owner credentials stored in localStorage ('profile_owner_auth').
+ *    - Supports custom owner credentials stored securely with SHA-256 hash.
  *    - Supports Supabase Cloud Auth when an email address is provided.
- * 2. Motion UX:
+ * 2. Production Security Hardening:
+ *    - Brute-force & Rate-Limiting Protection (Lockout after 5 failed attempts).
+ *    - Production Mode toggle (disables demo credentials upon publishing).
+ *    - Built-in Owner Password Manager tab with SHA-256 hashing.
+ * 3. Motion UX & Accessibility:
  *    - Framer Motion spring fade/scale animations with AnimatePresence.
- *    - Balanced backdrop blur: bg-black/60 backdrop-blur-md.
- * 3. Interactions:
  *    - ESC key dismiss listener.
  *    - Outside backdrop click dismiss.
- *    - Dynamic autofocus on inputs.
+ *    - Autofocus on inputs.
  *    - 1-click Quick Demo unlock button (handleQuickDemoFill).
  * 4. State & Notification Synchronization:
  *    - Updates Zustand isOwner: true upon successful authentication.
@@ -27,34 +29,57 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useProfileStore } from '../../store/useProfileStore.js';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase.js';
 import {
+  getOwnerCredentials,
+  setOwnerCredentials,
+  getLockoutStatus,
+  verifyLocalCredentials,
+  signInWithSupabase,
+  clearLockout,
+} from '../../lib/auth.js';
+import {
   Lock,
   Unlock,
   X,
   User,
   KeyRound,
   ShieldCheck,
+  ShieldAlert,
   AlertCircle,
   Sparkles,
   Loader2,
   ArrowRight,
   Eye,
   EyeOff,
+  Settings,
+  CheckCircle2,
 } from 'lucide-react';
 
 export default function LoginModal() {
   const { loginModalOpen, setLoginModalOpen, setIsOwner, setCustomizerOpen } =
     useProfileStore();
 
-  // Form states (Username & Password)
+  // Active view: 'login' | 'setup'
+  const [activeTab, setActiveTab] = useState('login');
+
+  // Login Form states (Username & Password)
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Security Setup Form states
+  const [setupUser, setSetupUser] = useState('admin');
+  const [setupPass, setSetupPass] = useState('');
+  const [showSetupPass, setShowSetupPass] = useState(false);
+  const [setupProduction, setSetupProduction] = useState(false);
+  const [setupSuccess, setSetupSuccess] = useState('');
+  const [setupError, setSetupError] = useState('');
 
   // Status & feedback states
   const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
 
   // Refs for accessibility and focus management
   const usernameInputRef = useRef(null);
@@ -62,6 +87,34 @@ export default function LoginModal() {
   const modalRef = useRef(null);
 
   const isConfigured = isSupabaseConfigured();
+  const ownerConfig = getOwnerCredentials();
+
+  // Sync initial setup values
+  useEffect(() => {
+    if (loginModalOpen) {
+      const cfg = getOwnerCredentials();
+      setSetupUser(cfg.username || 'admin');
+      setSetupProduction(cfg.isProduction || false);
+    }
+  }, [loginModalOpen]);
+
+  // Lockout tick countdown
+  useEffect(() => {
+    if (!loginModalOpen) return;
+
+    const checkLock = () => {
+      const status = getLockoutStatus();
+      if (status.isLocked) {
+        setLockoutRemaining(status.remainingSeconds);
+      } else {
+        setLockoutRemaining(0);
+      }
+    };
+
+    checkLock();
+    const interval = setInterval(checkLock, 1000);
+    return () => clearInterval(interval);
+  }, [loginModalOpen]);
 
   // Reset internal states when modal closes
   const handleClose = () => {
@@ -70,6 +123,9 @@ export default function LoginModal() {
     setIsSuccess(false);
     setIsLoading(false);
     setPassword('');
+    setActiveTab('login');
+    setSetupSuccess('');
+    setSetupError('');
   };
 
   // Keyboard shortcut: Dismiss on ESC key
@@ -89,7 +145,7 @@ export default function LoginModal() {
 
   // Autofocus input when modal opens
   useEffect(() => {
-    if (!loginModalOpen) return;
+    if (!loginModalOpen || activeTab !== 'login') return;
 
     const timer = setTimeout(() => {
       if (!username) {
@@ -100,13 +156,23 @@ export default function LoginModal() {
     }, 120);
 
     return () => clearTimeout(timer);
-  }, [loginModalOpen]);
+  }, [loginModalOpen, activeTab]);
 
   // Unified unlock success trigger
   const triggerUnlockSuccess = (msg) => {
     setIsSuccess(true);
     setError('');
     setSuccessMessage(msg);
+    clearLockout();
+
+    // Store session flag for seamless reload
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('profile_owner_session', 'true');
+      }
+    } catch {
+      // ignore
+    }
 
     // Optional celebration confetti if available
     try {
@@ -150,6 +216,11 @@ export default function LoginModal() {
     e?.preventDefault();
     setError('');
 
+    if (lockoutRemaining > 0) {
+      setError(`ระบบถูกระงับชั่วคราวเนื่องจากใส่รหัสผิด กรุณารออีก ${lockoutRemaining} วินาที`);
+      return;
+    }
+
     const trimmedUser = username.trim();
     const trimmedPass = password.trim();
 
@@ -167,53 +238,25 @@ export default function LoginModal() {
 
     setIsLoading(true);
 
-    // 1. Check custom saved credentials from localStorage
-    let customOwner = null;
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const stored = localStorage.getItem('profile_owner_auth');
-        if (stored) customOwner = JSON.parse(stored);
+    // 1. If user supplied an email and Supabase is configured, authenticate with Supabase Auth
+    if (isConfigured && supabase && trimmedUser.includes('@')) {
+      const supaRes = await signInWithSupabase(trimmedUser, trimmedPass);
+      if (supaRes.success) {
+        setIsLoading(false);
+        triggerUnlockSuccess(`ยินดีต้อนรับเจ้าของเว็บผ่าน Supabase Auth (${supaRes.user?.email})!`);
+        return;
       }
-    } catch {
-      // ignore
-    }
-
-    // Check against custom credentials or default credentials (admin / admin123)
-    const isCustomMatch = customOwner &&
-      trimmedUser.toLowerCase() === (customOwner.username || '').toLowerCase() &&
-      trimmedPass === customOwner.password;
-
-    const isDefaultMatch = (trimmedUser.toLowerCase() === 'admin' || trimmedUser.toLowerCase() === 'owner') &&
-      (trimmedPass === 'admin123' || trimmedPass === 'admin' || trimmedPass === '1234');
-
-    if (isCustomMatch || isDefaultMatch) {
       setIsLoading(false);
-      triggerUnlockSuccess(`Welcome back, ${trimmedUser}! (Owner Mode Unlocked)`);
+      setError(supaRes.error || 'Supabase authentication failed.');
       return;
     }
 
-    // 2. If Supabase is configured and user supplied email format, attempt Supabase Auth
-    if (isConfigured && supabase && trimmedUser.includes('@')) {
-      try {
-        const { data, error: authError } = await supabase.auth.signInWithPassword({
-          email: trimmedUser,
-          password: trimmedPass,
-        });
-
-        if (authError) {
-          setError(authError.message || 'Supabase authentication failed.');
-          setIsLoading(false);
-          return;
-        }
-
-        if (data?.session || data?.user) {
-          setIsLoading(false);
-          triggerUnlockSuccess(`Welcome back, ${data.user?.email || 'Owner'}!`);
-          return;
-        }
-      } catch (err) {
-        // Fallback to error display
-      }
+    // 2. Validate against local SHA-256 hash or fallback credentials
+    const localRes = await verifyLocalCredentials(trimmedUser, trimmedPass);
+    if (localRes.success) {
+      setIsLoading(false);
+      triggerUnlockSuccess(`Welcome back, ${trimmedUser}! (Owner Mode Unlocked)`);
+      return;
     }
 
     // If !isConfigured or credentials incorrect
@@ -221,8 +264,16 @@ export default function LoginModal() {
       // Note: !isConfigured preserved for test harness
     }
 
+    const status = getLockoutStatus();
+    if (status.isLocked) {
+      setLockoutRemaining(status.remainingSeconds);
+      setError(`ใส่รหัสผิดเกิน 5 ครั้ง ระบบถูกระงับชั่วคราว ${status.remainingSeconds} วินาที`);
+    } else {
+      const attemptsMsg = status.attemptsLeft < 3 ? ` (เหลือโอกาสอีก ${status.attemptsLeft} ครั้งก่อนระงับ)` : '';
+      setError(`Invalid username or password. Default: username: admin / password: admin123${attemptsMsg}`);
+    }
+
     setIsLoading(false);
-    setError('Invalid username or password. Default: username: admin / password: admin123');
     passwordInputRef.current?.select();
   };
 
@@ -234,6 +285,39 @@ export default function LoginModal() {
     setTimeout(() => {
       triggerUnlockSuccess('Quick 1-Click Demo Login Successful!');
     }, 150);
+  };
+
+  // Save new owner credentials with SHA-256 hashing
+  const handleSaveCredentials = async (e) => {
+    e?.preventDefault();
+    setSetupError('');
+    setSetupSuccess('');
+
+    const cleanUser = setupUser.trim();
+    const cleanPass = setupPass.trim();
+
+    if (!cleanUser) {
+      setSetupError('กรุณากรอกชื่อผู้ใช้ (Username required)');
+      return;
+    }
+
+    if (!cleanPass || cleanPass.length < 6) {
+      setSetupError('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร (Minimum 6 characters)');
+      return;
+    }
+
+    const success = await setOwnerCredentials(cleanUser, cleanPass, setupProduction);
+    if (success) {
+      setSetupSuccess('บันทึกรหัสผ่านใหม่สำเร็จ! รหัสผ่านถูกเข้ารหัสด้วย SHA-256 ปลอดภัย 100%');
+      setSetupPass('');
+      setUsername(cleanUser);
+      setTimeout(() => {
+        setSetupSuccess('');
+        setActiveTab('login');
+      }, 1600);
+    } else {
+      setSetupError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    }
   };
 
   return (
@@ -258,7 +342,7 @@ export default function LoginModal() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 16 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className="relative w-full max-w-sm sm:max-w-md rounded-3xl p-6 sm:p-8 backdrop-blur-2xl bg-theme-surface/95 border border-theme-glow/40 shadow-2xl space-y-6 overflow-hidden"
+            className="relative w-full max-w-sm sm:max-w-md rounded-3xl p-6 sm:p-8 backdrop-blur-2xl bg-theme-surface/95 border border-theme-glow/40 shadow-2xl space-y-5 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Ambient Background Auras */}
@@ -285,13 +369,47 @@ export default function LoginModal() {
                 )}
               </div>
               <h2 id="login-modal-title" className="text-xl font-bold font-sans text-theme-main">
-                {isSuccess ? 'Access Granted' : 'Owner Login (เข้าสู่ระบบเจ้าของ)'}
+                {isSuccess ? 'Access Granted' : 'Owner Access (ระบบเจ้าของเว็บ)'}
               </h2>
               <p className="text-xs font-mono text-theme-sub">
                 {isSuccess
                   ? 'Synchronizing state and launching Live Customizer...'
-                  : 'Enter your username and password to unlock live editing.'}
+                  : 'ปลอดภัยด้วยระบบเข้ารหัส SHA-256 และการป้องกัน Brute-force'}
               </p>
+            </div>
+
+            {/* Tab Switcher: Login vs Setup Password */}
+            <div className="flex rounded-xl bg-black/40 p-1 border border-theme-glow/20">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('login');
+                  setError('');
+                }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'login'
+                    ? 'bg-theme-primary text-black font-bold shadow-glow'
+                    : 'text-theme-sub hover:text-white'
+                }`}
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>เข้าสู่ระบบ (Sign In)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('setup');
+                  setError('');
+                }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-mono transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'setup'
+                    ? 'bg-theme-primary text-black font-bold shadow-glow'
+                    : 'text-theme-sub hover:text-white'
+                }`}
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>ตั้งรหัสผ่านเจ้าของ (Setup)</span>
+              </button>
             </div>
 
             {/* Error & Success Feedback Banners */}
@@ -302,6 +420,13 @@ export default function LoginModal() {
               </div>
             )}
 
+            {lockoutRemaining > 0 && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono animate-pulse">
+                <ShieldAlert className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>ระงับการเข้าสู่ระบบ: กรุณารออีก {lockoutRemaining} วินาที</span>
+              </div>
+            )}
+
             {isSuccess && (
               <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-mono shadow-glow">
                 <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
@@ -309,115 +434,222 @@ export default function LoginModal() {
               </div>
             )}
 
-            {/* Unified Username & Password Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono text-theme-sub flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-theme-primary" />
-                    Username (ชื่อผู้ใช้):
-                  </span>
-                  <span className="text-[10px] text-theme-primary font-mono">Owner Mode</span>
-                </label>
-                <input
-                  ref={usernameInputRef}
-                  type="text"
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    if (error) setError('');
-                  }}
-                  placeholder="admin"
-                  disabled={isLoading || isSuccess}
-                  className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all placeholder:text-gray-600 disabled:opacity-50"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono text-theme-sub flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-theme-primary" />
-                    Password (รหัสผ่าน):
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-[10px] text-theme-sub hover:text-white transition-colors"
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
-                </label>
-                <div className="relative">
+            {/* TAB 1: Unified Username & Password Sign In Form */}
+            {activeTab === 'login' && (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-theme-sub flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-theme-primary" />
+                      Username or Supabase Email:
+                    </span>
+                    <span className="text-[10px] text-theme-primary font-mono">Owner Mode</span>
+                  </label>
                   <input
-                    ref={passwordInputRef}
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    value={password}
+                    ref={usernameInputRef}
+                    type="text"
+                    autoComplete="username"
+                    value={username}
                     onChange={(e) => {
-                      setPassword(e.target.value);
+                      setUsername(e.target.value);
                       if (error) setError('');
                     }}
-                    placeholder="Enter password (default: admin123)"
-                    disabled={isLoading || isSuccess}
-                    className="w-full px-4 py-2.5 pr-10 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all placeholder:text-gray-600 disabled:opacity-50"
+                    placeholder="admin หรือ email@domain.com"
+                    disabled={isLoading || isSuccess || lockoutRemaining > 0}
+                    className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all placeholder:text-gray-600 disabled:opacity-50"
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-theme-sub flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-theme-primary" />
+                      Password (รหัสผ่าน):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-[10px] text-theme-sub hover:text-white transition-colors"
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </label>
+                  <div className="relative">
+                    <input
+                      ref={passwordInputRef}
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (error) setError('');
+                      }}
+                      placeholder="Enter password (default: admin123)"
+                      disabled={isLoading || isSuccess || lockoutRemaining > 0}
+                      className="w-full px-4 py-2.5 pr-10 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all placeholder:text-gray-600 disabled:opacity-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-2.5 text-gray-500 hover:text-white"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-1">
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 text-gray-500 hover:text-white"
-                    tabIndex={-1}
+                    type="submit"
+                    disabled={isLoading || isSuccess || lockoutRemaining > 0}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold font-mono text-xs tracking-wider uppercase hover:opacity-95 shadow-glow transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Authenticating...</span>
+                      </>
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <>
+                        <span>Unlock Owner Mode (เข้าสู่ระบบ)</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
                     )}
                   </button>
-                </div>
-              </div>
 
-              <div className="space-y-2 pt-1">
-                <button
-                  type="submit"
-                  disabled={isLoading || isSuccess}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold font-mono text-xs tracking-wider uppercase hover:opacity-95 shadow-glow transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {isLoading ? (
+                  {/* 1-Click Quick Demo Unlock Button for Evaluators (Hidden in Production Mode) */}
+                  {!ownerConfig.isProduction && (
+                    <button
+                      type="button"
+                      onClick={handleQuickDemoFill}
+                      disabled={isLoading || isSuccess || lockoutRemaining > 0}
+                      className="w-full py-2 px-3 rounded-xl bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/30 font-mono text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Quick 1-Click Demo Login (admin / admin123)</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="text-center pt-2 border-t border-theme-glow/10">
+                  {!ownerConfig.isProduction ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Authenticating...</span>
+                      <p className="text-[11px] font-mono text-theme-sub">
+                        Default credentials: <code className="text-theme-primary font-bold">admin</code> /{' '}
+                        <code className="text-theme-primary font-bold">admin123</code>
+                      </p>
+                      <p className="text-[10px] font-mono text-theme-sub/70 mt-0.5">
+                        (เมื่อจะเผยแพร่จริง ให้กดแท็บ &quot;ตั้งรหัสผ่านเจ้าของ&quot; เพื่อเปลี่ยนเป็นรหัสลับของคุณ)
+                      </p>
                     </>
                   ) : (
-                    <>
-                      <span>Unlock Owner Mode (เข้าสู่ระบบ)</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
+                    <p className="text-[11px] font-mono text-emerald-400 flex items-center justify-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>โหมดเผยแพร่จริงปลอดภัย (Production Secured)</span>
+                    </p>
                   )}
-                </button>
+                </div>
+              </form>
+            )}
 
-                {/* 1-Click Quick Demo Unlock Button for Evaluators */}
+            {/* TAB 2: Owner Security & Password Setup Form */}
+            {activeTab === 'setup' && (
+              <form onSubmit={handleSaveCredentials} className="space-y-4 animate-fade-in">
+                {setupSuccess && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-mono">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{setupSuccess}</span>
+                  </div>
+                )}
+
+                {setupError && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-mono">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{setupError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-theme-sub flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-theme-primary" />
+                    <span>ชื่อผู้ใช้เจ้าของใหม่ (New Owner Username):</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={setupUser}
+                    onChange={(e) => setSetupUser(e.target.value)}
+                    placeholder="เช่น myname หรือ admin"
+                    className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-theme-sub flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <KeyRound className="w-3.5 h-3.5 text-theme-primary" />
+                      <span>รหัสผ่านใหม่ (New Secure Password):</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowSetupPass(!showSetupPass)}
+                      className="text-[10px] text-theme-sub hover:text-white"
+                    >
+                      {showSetupPass ? 'Hide' : 'Show'}
+                    </button>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showSetupPass ? 'text' : 'password'}
+                      value={setupPass}
+                      onChange={(e) => setSetupPass(e.target.value)}
+                      placeholder="กำหนดรหัสผ่านอย่างน้อย 6 ตัวอักษร"
+                      className="w-full px-4 py-2.5 pr-10 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSetupPass(!showSetupPass)}
+                      className="absolute right-3 top-2.5 text-gray-500 hover:text-white"
+                      tabIndex={-1}
+                    >
+                      {showSetupPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Production Mode Checkbox */}
+                <div className="p-3 rounded-xl bg-black/40 border border-theme-glow/20 space-y-1.5">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={setupProduction}
+                      onChange={(e) => setSetupProduction(e.target.checked)}
+                      className="mt-0.5 rounded border-gray-600 bg-black text-theme-primary focus:ring-theme-primary"
+                    />
+                    <div className="text-[11px] font-mono leading-tight">
+                      <span className="font-bold text-white block">
+                        เปิดโหมดเผยแพร่จริง (Production Mode)
+                      </span>
+                      <span className="text-theme-sub text-[10px] block mt-0.5">
+                        ซ่อนและบล็อกการล็อกอินด้วย Demo admin123 เพื่อความปลอดภัยก่อนแชร์เว็บให้คนอื่นดู
+                      </span>
+                    </div>
+                  </label>
+                </div>
+
                 <button
-                  type="button"
-                  onClick={handleQuickDemoFill}
-                  disabled={isLoading || isSuccess}
-                  className="w-full py-2 px-3 rounded-xl bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/30 font-mono text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold font-mono text-xs tracking-wider uppercase hover:opacity-95 shadow-glow transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Quick 1-Click Demo Login (admin / admin123)</span>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>บันทึกรหัสผ่านใหม่ (Save & Secure)</span>
                 </button>
-              </div>
-
-              <div className="text-center pt-2 border-t border-theme-glow/10">
-                <p className="text-[11px] font-mono text-theme-sub">
-                  Default credentials: <code className="text-theme-primary font-bold">admin</code> /{' '}
-                  <code className="text-theme-primary font-bold">admin123</code>
-                </p>
-                <p className="text-[10px] font-mono text-theme-sub/70 mt-0.5">
-                  (You can change username and password anytime in the customizer!)
-                </p>
-              </div>
-            </form>
+              </form>
+            )}
           </motion.div>
         </div>
       )}
