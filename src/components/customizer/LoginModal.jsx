@@ -270,7 +270,7 @@ export default function LoginModal() {
       setError(`ใส่รหัสผิดเกิน 5 ครั้ง ระบบถูกระงับชั่วคราว ${status.remainingSeconds} วินาที`);
     } else {
       const attemptsMsg = status.attemptsLeft < 3 ? ` (เหลือโอกาสอีก ${status.attemptsLeft} ครั้งก่อนระงับ)` : '';
-      setError(`Invalid username or password. Default: username: admin / password: admin123${attemptsMsg}`);
+      setError(`Invalid username or password.${attemptsMsg}`);
     }
 
     setIsLoading(false);
@@ -459,7 +459,7 @@ export default function LoginModal() {
                       setUsername(e.target.value);
                       if (error) setError('');
                     }}
-                    placeholder="admin หรือ email@domain.com"
+                    placeholder="Username หรือ email@domain.com"
                     disabled={isLoading || isSuccess || lockoutRemaining > 0}
                     className="w-full px-4 py-2.5 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all placeholder:text-gray-600 disabled:opacity-50"
                   />
@@ -489,7 +489,7 @@ export default function LoginModal() {
                         setPassword(e.target.value);
                         if (error) setError('');
                       }}
-                      placeholder="Enter password (default: admin123)"
+                      placeholder="Enter password"
                       disabled={isLoading || isSuccess || lockoutRemaining > 0}
                       className="w-full px-4 py-2.5 pr-10 rounded-xl bg-black/50 border border-theme-glow/30 text-white font-mono text-sm focus:outline-none focus:border-theme-primary focus:ring-1 focus:ring-theme-primary transition-all placeholder:text-gray-600 disabled:opacity-50"
                     />
@@ -526,38 +526,13 @@ export default function LoginModal() {
                       </>
                     )}
                   </button>
-
-                  {/* 1-Click Quick Demo Unlock Button for Evaluators (Hidden in Production Mode) */}
-                  {!ownerConfig.isProduction && (
-                    <button
-                      type="button"
-                      onClick={handleQuickDemoFill}
-                      disabled={isLoading || isSuccess || lockoutRemaining > 0}
-                      className="w-full py-2 px-3 rounded-xl bg-theme-primary/10 hover:bg-theme-primary/20 text-theme-primary border border-theme-primary/30 font-mono text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Quick 1-Click Demo Login (admin / admin123)</span>
-                    </button>
-                  )}
                 </div>
 
                 <div className="text-center pt-2 border-t border-theme-glow/10">
-                  {!ownerConfig.isProduction ? (
-                    <>
-                      <p className="text-[11px] font-mono text-theme-sub">
-                        Default credentials: <code className="text-theme-primary font-bold">admin</code> /{' '}
-                        <code className="text-theme-primary font-bold">admin123</code>
-                      </p>
-                      <p className="text-[10px] font-mono text-theme-sub/70 mt-0.5">
-                        (เมื่อจะเผยแพร่จริง ให้กดแท็บ &quot;ตั้งรหัสผ่านเจ้าของ&quot; เพื่อเปลี่ยนเป็นรหัสลับของคุณ)
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-[11px] font-mono text-emerald-400 flex items-center justify-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>โหมดเผยแพร่จริงปลอดภัย (Production Secured)</span>
-                    </p>
-                  )}
+                  <p className="text-[11px] font-mono text-emerald-400/90 flex items-center justify-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>ระบบป้องกันความปลอดภัยเข้ารหัส (Secured Access)</span>
+                  </p>
                 </div>
               </form>
             )}

@@ -903,30 +903,6 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
               )}
             </div>
           </div>
-
-
-
-          {/* Graceful Audio Error Notification Banner */}
-          {audioError && !isPlaying && safeCurrentTime === 0 && !isLocalDeviceOnly && (
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono mt-1">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="text-[11px] truncate max-w-[200px] sm:max-w-xs">{audioError}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setAudioError(null);
-                  if (audioRef.current) {
-                    audioRef.current.load();
-                  }
-                }}
-                className="px-2 py-0.5 rounded text-[10px] bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>
