@@ -488,7 +488,16 @@ export const dataProvider = {
           };
 
           if (profileId) {
-            await supabase.from('profiles').update(profilePayload).eq('id', profileId);
+            const { data: updData, error: updErr } = await supabase
+              .from('profiles')
+              .update(profilePayload)
+              .eq('id', profileId)
+              .select('id');
+
+            if (updErr) throw updErr;
+            if (!updData || updData.length === 0) {
+              throw new Error('Supabase RLS Policy blocked profile update (42501). Please disable RLS or allow public updates in Supabase SQL editor.');
+            }
           } else {
             const { data: newProfile, error: insertErr } = await supabase
               .from('profiles')
@@ -502,7 +511,9 @@ export const dataProvider = {
 
           if (profileId) {
             // Sync links
-            await supabase.from('links').delete().eq('profile_id', profileId);
+            const { error: delLinksErr } = await supabase.from('links').delete().eq('profile_id', profileId);
+            if (delLinksErr) throw delLinksErr;
+
             if (lightweight.links && lightweight.links.length > 0) {
               const linksPayload = lightweight.links.map((link, idx) => ({
                 profile_id: profileId,
@@ -514,11 +525,14 @@ export const dataProvider = {
                 is_active: link.isActive !== false,
                 highlight_color: link.highlightColor || null,
               }));
-              await supabase.from('links').insert(linksPayload);
+              const { error: insLinksErr } = await supabase.from('links').insert(linksPayload);
+              if (insLinksErr) throw insLinksErr;
             }
 
             // Sync favorites
-            await supabase.from('favorites').delete().eq('profile_id', profileId);
+            const { error: delFavsErr } = await supabase.from('favorites').delete().eq('profile_id', profileId);
+            if (delFavsErr) throw delFavsErr;
+
             if (lightweight.favorites && lightweight.favorites.length > 0) {
               const favsPayload = lightweight.favorites.map((fav, idx) => ({
                 profile_id: profileId,
@@ -529,11 +543,12 @@ export const dataProvider = {
                 badge: fav.badge || null,
                 sort_order: fav.order ?? idx,
               }));
-              await supabase.from('favorites').insert(favsPayload);
+              const { error: insFavsErr } = await supabase.from('favorites').insert(favsPayload);
+              if (insFavsErr) throw insFavsErr;
             }
 
             // Sync site settings
-            await supabase.from('site_settings').upsert({
+            const { error: setErr } = await supabase.from('site_settings').upsert({
               profile_id: profileId,
               theme_preset: lightweight.settings.themePreset,
               layout_style: lightweight.settings.layoutStyle,
@@ -551,6 +566,7 @@ export const dataProvider = {
                 customColors: lightweight.settings.customColors || null,
               },
             }, { onConflict: 'profile_id' });
+            if (setErr) throw setErr;
           }
         })(), 4000);
 
@@ -561,11 +577,16 @@ export const dataProvider = {
         };
       } catch (cloudErr) {
         console.warn('[DataProvider] Supabase sync failed or timed out:', cloudErr);
+        const isRls = cloudErr.message?.includes('RLS') || cloudErr.code === '42501' || cloudErr.message?.includes('policy');
+        const rlsWarning = isRls
+          ? 'บันทึกลงเบราว์เซอร์แล้ว แต่ยังไม่ขึ้น Supabase Cloud (ติด RLS Policy 42501) รันคำสั่ง SQL ปลดล็อคใน Supabase เพื่อให้อุปกรณ์อื่นเห็นข้อมูล'
+          : `Changes saved locally. Supabase sync error: ${cloudErr.message}`;
+
         if (localSaved) {
           return {
             success: true,
             source: 'local',
-            warning: 'Changes saved locally. Supabase sync timed out or encountered an error.',
+            warning: rlsWarning,
           };
         } else {
           return {

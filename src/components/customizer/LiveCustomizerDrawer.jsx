@@ -137,11 +137,19 @@ export default function LiveCustomizerDrawer() {
   const handleSave = async (autoClose = false) => {
     const result = await saveChanges();
     if (result && result.success) {
-      setToast({
-        message: `Changes saved successfully to ${result.source === 'supabase' ? 'Supabase' : 'LocalStorage'}!`,
-        type: 'success',
-      });
-      setTimeout(() => setToast(null), 3000);
+      if (result.warning) {
+        setToast({
+          message: `${result.warning}`,
+          type: 'warning',
+        });
+        setTimeout(() => setToast(null), 8000);
+      } else {
+        setToast({
+          message: `Changes saved successfully to ${result.source === 'supabase' ? 'Supabase' : 'LocalStorage'}!`,
+          type: 'success',
+        });
+        setTimeout(() => setToast(null), 3000);
+      }
       if (autoClose) {
         setTimeout(() => {
           setCustomizerOpen(false);
