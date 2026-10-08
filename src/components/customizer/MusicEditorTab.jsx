@@ -13,6 +13,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useProfileStore } from '../../store/useProfileStore.js';
+import { DEFAULT_PROFILE_DATA } from '../../data/defaultData.js';
 import ImageCropModal from '../ui/ImageCropModal.jsx';
 import { mediaStorage } from '../../lib/mediaStorage.js';
 import {
@@ -68,7 +69,11 @@ export default function MusicEditorTab() {
 
     if (sourceUrl.startsWith('indexeddb://')) {
       const resolved = await mediaStorage.getPlayableUrl('custom_audio_file');
-      if (resolved) sourceUrl = resolved;
+      if (resolved) {
+        sourceUrl = resolved;
+      } else {
+        sourceUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
+      }
     }
 
     if (!sourceUrl) {

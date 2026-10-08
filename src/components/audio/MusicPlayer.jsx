@@ -92,6 +92,8 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
   const [audioError, setAudioError] = useState(null);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [autoplayWaiting, setAutoplayWaiting] = useState(false);
+  const [playableSrc, setPlayableSrc] = useState('');
+  const [isLocalDeviceOnly, setIsLocalDeviceOnly] = useState(false);
 
   // Safe numerical duration and progress calculation
   const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
@@ -105,21 +107,36 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
     let isCancelled = false;
 
     const syncAudioTrack = async () => {
-      const audio = audioRef.current;
-      if (!audio) return;
-
       let targetUrl = music.audioUrl;
+      let localOnly = false;
+
       if (targetUrl && targetUrl.startsWith('indexeddb://')) {
         const key = targetUrl.replace('indexeddb://', '') || 'custom_audio_file';
-        const playable = await mediaStorage.getPlayableUrl(key);
-        if (playable) {
-          targetUrl = playable;
-        } else {
+        try {
+          const playable = await mediaStorage.getPlayableUrl(key);
+          if (playable) {
+            targetUrl = playable;
+            localOnly = false;
+          } else {
+            targetUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
+            localOnly = true;
+          }
+        } catch (err) {
+          console.warn('[MusicPlayer] Failed resolving indexeddb audio:', err);
           targetUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
+          localOnly = true;
         }
+      } else if (!targetUrl) {
+        targetUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
       }
 
       if (isCancelled) return;
+
+      setIsLocalDeviceOnly(localOnly);
+      setPlayableSrc(targetUrl);
+
+      const audio = audioRef.current;
+      if (!audio) return;
 
       if (targetUrl !== currentAudioUrl.current) {
         currentAudioUrl.current = targetUrl;
@@ -165,8 +182,17 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
         if (targetUrl && targetUrl.startsWith('indexeddb://')) {
           const key = targetUrl.replace('indexeddb://', '') || 'custom_audio_file';
           const playable = await mediaStorage.getPlayableUrl(key);
-          if (playable) targetUrl = playable;
+          if (playable) {
+            targetUrl = playable;
+          } else {
+            targetUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
+            if (isMounted) setIsLocalDeviceOnly(true);
+          }
+        } else if (!targetUrl) {
+          targetUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
         }
+
+        if (isMounted) setPlayableSrc(targetUrl);
 
         if (!audio.src || !audio.src.includes(targetUrl.slice(0, 30))) {
           audio.src = targetUrl;
@@ -302,6 +328,11 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
   };
 
   const handleAudioError = (e) => {
+    if (isLocalDeviceOnly) {
+      console.info('[MusicPlayer] Suppressed audio error for local device fallback');
+      setIsLoading(false);
+      return;
+    }
     console.warn('[MusicPlayer] HTML5 audio error event triggered:', e);
     setIsLoading(false);
     setIsPlaying(false);
@@ -321,6 +352,25 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
     } else {
       setAudioError(null);
       setIsLoading(true);
+
+      // Verify audio source is ready and not indexeddb
+      if (!audio.src || audio.src.startsWith('indexeddb://') || !playableSrc) {
+        let targetSrc = playableSrc;
+        if (!targetSrc || targetSrc.startsWith('indexeddb://')) {
+          if (music.audioUrl && music.audioUrl.startsWith('indexeddb://')) {
+            const key = music.audioUrl.replace('indexeddb://', '') || 'custom_audio_file';
+            const resolved = await mediaStorage.getPlayableUrl(key);
+            targetSrc = resolved || DEFAULT_PROFILE_DATA.music.audioUrl;
+            if (!resolved) setIsLocalDeviceOnly(true);
+          } else {
+            targetSrc = music.audioUrl || DEFAULT_PROFILE_DATA.music.audioUrl;
+          }
+        }
+        setPlayableSrc(targetSrc);
+        audio.src = targetSrc;
+        audio.load();
+      }
+
       try {
         const playPromise = audio.play();
         if (playPromise !== undefined) {
@@ -337,7 +387,9 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
         if (err.name === 'NotAllowedError') {
           setAudioError('Playback blocked by browser policy. Click to permit.');
         } else if (err.name === 'NotSupportedError') {
-          setAudioError('Audio format not supported by browser.');
+          if (!isLocalDeviceOnly) {
+            setAudioError('Audio format not supported by browser.');
+          }
         } else {
           setAudioError('Playback failed. Check audio stream.');
         }
@@ -345,7 +397,7 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
         setIsLoading(false);
       }
     }
-  }, [isPlaying]);
+  }, [isPlaying, playableSrc, music.audioUrl, isLocalDeviceOnly]);
 
   const handleSeekChange = (e) => {
     const newTime = parseFloat(e.target.value);
@@ -422,7 +474,7 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
       >
         <audio
           ref={audioRef}
-          src={music.audioUrl}
+          src={playableSrc || undefined}
           preload="metadata"
           onPlay={handleOnPlay}
           onPause={handleOnPause}
@@ -489,7 +541,7 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
       {/* Hidden Native HTML5 Audio Tag */}
       <audio
         ref={audioRef}
-        src={music.audioUrl}
+        src={playableSrc || undefined}
         preload="metadata"
         onPlay={handleOnPlay}
         onPause={handleOnPause}
@@ -770,8 +822,20 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
             </div>
           </div>
 
+          {/* Friendly device notice when custom audio was uploaded only on the owner's PC */}
+          {isLocalDeviceOnly && !audioError && (
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-theme-primary/10 border border-theme-primary/20 text-theme-primary text-xs font-mono mt-1">
+              <div className="flex items-center gap-2">
+                <Music className="w-3.5 h-3.5 flex-shrink-0 animate-pulse" />
+                <span className="text-[11px] truncate max-w-[220px] sm:max-w-xs">
+                  ไฟล์เสียงอยู่ในคอมพิวเตอร์ของคุณ • กดฟังเพลงเต็มได้ที่ Spotify หรือ YouTube
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Graceful Audio Error Notification Banner */}
-          {audioError && (
+          {audioError && !isLocalDeviceOnly && (
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono mt-1">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />

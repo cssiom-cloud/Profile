@@ -138,7 +138,7 @@ export const useProfileStore = create((set, get) => ({
   // --- Persistence & Status Metadata ---
   committedState: deepClone(DEFAULT_PROFILE_DATA),
   isDirty: false,
-  isLoading: false,
+  isLoading: true,
   saveStatus: 'idle', // 'idle' | 'saving' | 'saved' | 'error'
   storageSource: 'local', // 'local' | 'supabase'
 
@@ -400,6 +400,7 @@ export const useProfileStore = create((set, get) => ({
    */
   loadInitialData: async () => {
     // 1. FAST-BOOT CACHE HYDRATION (Instant 0ms first render)
+    let hasLocalCache = false;
     try {
       if (typeof localStorage !== 'undefined') {
         const cached = localStorage.getItem('profile_hub_local_storage_v1');
@@ -419,8 +420,9 @@ export const useProfileStore = create((set, get) => ({
               settings: normalized.settings,
               committedState: initialSnapshot,
               isDirty: false,
-              isLoading: false, // Immediately unblock UI!
+              isLoading: false, // Immediately unblock UI if local cache exists!
             });
+            hasLocalCache = true;
           }
         }
       }
@@ -428,14 +430,17 @@ export const useProfileStore = create((set, get) => ({
       // Ignore cache pre-parse errors
     }
 
-    // If cache was not available, ensure loading is true
-    if (get().isLoading !== false) {
+    // If cache was not available (new device), ensure loading remains true while fetching cloud data
+    if (!hasLocalCache) {
       set({ isLoading: true });
     }
 
     // 2. BACKGROUND VALIDATION: Fetch from dataProvider (checks Supabase if active)
     try {
-      const loaded = await dataProvider.fetchData();
+      const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => resolve(null), 5500)
+      );
+      const loaded = await Promise.race([dataProvider.fetchData(), timeoutPromise]);
       const safeData = {
         profile: (loaded && typeof loaded.profile === 'object' && loaded.profile !== null)
           ? loaded.profile
