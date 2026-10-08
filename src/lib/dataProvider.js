@@ -163,19 +163,20 @@ export const dataProvider = {
   async restoreMediaFromIndexedDB(payload) {
     if (!payload || typeof payload !== 'object') return payload;
 
-    // Restore audio
-    if (payload.music && typeof payload.music.audioUrl === 'string' && payload.music.audioUrl.startsWith('indexeddb://')) {
-      const key = payload.music.audioUrl.replace('indexeddb://', '') || 'custom_audio_file';
-      try {
-        const stored = await mediaStorage.getItem(key);
-        if (stored) {
-          payload.music.audioUrl = stored;
-        } else {
-          payload.music.audioUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
+    // Restore audio pointer and auto-migrate legacy large data URLs
+    if (payload.music && typeof payload.music.audioUrl === 'string') {
+      if (payload.music.audioUrl.startsWith('indexeddb://')) {
+        // Keep the lightweight pointer 'indexeddb://custom_audio_file' in the store state!
+        // DO NOT blow up the React state with a 13.5MB base64 string.
+        // MusicPlayer and MusicEditorTab resolve it on-demand via mediaStorage.getPlayableUrl().
+      } else if (payload.music.audioUrl.startsWith('data:audio') || payload.music.audioUrl.length > 64 * 1024) {
+        // Auto-migrate legacy multi-megabyte data URLs to IndexedDB to free up main thread
+        try {
+          await mediaStorage.setItem('custom_audio_file', payload.music.audioUrl);
+          payload.music.audioUrl = 'indexeddb://custom_audio_file';
+        } catch (err) {
+          console.warn('[DataProvider] Failed auto-migrating legacy audio dataUrl:', err);
         }
-      } catch (err) {
-        console.warn('[DataProvider] Failed to restore audio from IndexedDB:', err);
-        payload.music.audioUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
       }
     }
 

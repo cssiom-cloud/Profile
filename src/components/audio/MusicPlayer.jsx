@@ -110,9 +110,9 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
       let targetUrl = music.audioUrl;
       if (targetUrl && targetUrl.startsWith('indexeddb://')) {
         const key = targetUrl.replace('indexeddb://', '') || 'custom_audio_file';
-        const stored = await mediaStorage.getItem(key);
-        if (stored) {
-          targetUrl = stored;
+        const playable = await mediaStorage.getPlayableUrl(key);
+        if (playable) {
+          targetUrl = playable;
         } else {
           targetUrl = DEFAULT_PROFILE_DATA.music.audioUrl;
         }

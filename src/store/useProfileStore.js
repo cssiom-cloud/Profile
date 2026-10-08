@@ -95,13 +95,25 @@ export const applyThemeToDOM = (themePreset, customColors = null) => {
 };
 
 /**
- * Extracts comparable state payload for dirty tracking
+ * Extracts comparable state payload for dirty tracking.
+ * Sanitizes large media strings so JSON.stringify never stalls on multi-megabyte payloads.
  */
+const sanitizeComparableMusic = (m) => {
+  if (!m || typeof m !== 'object') return m;
+  const audio = m.audioUrl;
+  return {
+    ...m,
+    audioUrl: typeof audio === 'string' && audio.length > 300
+      ? `data_audio_${audio.length}_${audio.slice(0, 30)}`
+      : audio,
+  };
+};
+
 const extractPayload = (state) => ({
   profile: state?.profile,
   links: state?.links,
   favorites: state?.favorites,
-  music: state?.music,
+  music: sanitizeComparableMusic(state?.music),
   settings: state?.settings,
 });
 
@@ -386,7 +398,41 @@ export const useProfileStore = create((set, get) => ({
    * Initializes store on application boot via dataProvider cascade
    */
   loadInitialData: async () => {
-    set({ isLoading: true });
+    // 1. FAST-BOOT CACHE HYDRATION (Instant 0ms first render)
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const cached = localStorage.getItem('profile_hub_local_storage_v1');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') {
+            const normalized = dataProvider.normalizePayload(parsed);
+            if (normalized.settings?.themePreset) {
+              applyThemeToDOM(normalized.settings.themePreset, normalized.settings.customColors);
+            }
+            const initialSnapshot = deepClone(normalized);
+            set({
+              profile: normalized.profile,
+              links: normalized.links,
+              favorites: normalized.favorites,
+              music: normalized.music,
+              settings: normalized.settings,
+              committedState: initialSnapshot,
+              isDirty: false,
+              isLoading: false, // Immediately unblock UI!
+            });
+          }
+        }
+      }
+    } catch {
+      // Ignore cache pre-parse errors
+    }
+
+    // If cache was not available, ensure loading is true
+    if (get().isLoading !== false) {
+      set({ isLoading: true });
+    }
+
+    // 2. BACKGROUND VALIDATION: Fetch from dataProvider (checks Supabase if active)
     try {
       const loaded = await dataProvider.fetchData();
       const safeData = {

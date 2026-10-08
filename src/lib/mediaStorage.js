@@ -47,6 +47,7 @@ export const mediaStorage = {
    */
   async setItem(key, value) {
     if (!key) return false;
+    this.revokePlayableUrl(key);
     memoryFallback.set(key, value);
 
     const db = await openDB();
@@ -92,6 +93,81 @@ export const mediaStorage = {
     });
   },
 
+  // Cache of generated blob URLs to avoid duplicate memory allocation
+  blobUrlCache: new Map(),
+
+  /**
+   * Resolves a media key to a high-performance playable URL.
+   * If the item is a Blob/File or base64 data URL, provides a fast object URL (blob:...).
+   * @param {string} key
+   * @returns {Promise<string | null>}
+   */
+  async getPlayableUrl(key) {
+    if (!key) return null;
+
+    if (this.blobUrlCache.has(key)) {
+      return this.blobUrlCache.get(key);
+    }
+
+    const item = await this.getItem(key);
+    if (!item) return null;
+
+    if (typeof window === 'undefined') {
+      return typeof item === 'string' ? item : null;
+    }
+
+    if (typeof Blob !== 'undefined' && item instanceof Blob) {
+      const url = URL.createObjectURL(item);
+      this.blobUrlCache.set(key, url);
+      return url;
+    }
+
+    if (typeof item === 'string') {
+      if (item.startsWith('blob:') || item.startsWith('http://') || item.startsWith('https://')) {
+        return item;
+      }
+      if (item.startsWith('data:audio') && typeof window !== 'undefined' && window.URL && window.Blob) {
+        try {
+          const parts = item.split(';base64,');
+          if (parts.length === 2) {
+            const mime = parts[0].split(':')[1] || 'audio/mpeg';
+            const bstr = atob(parts[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+              u8arr[n] = bstr.charCodeAt(n);
+            }
+            const blob = new Blob([u8arr], { type: mime });
+            const url = URL.createObjectURL(blob);
+            this.blobUrlCache.set(key, url);
+            return url;
+          }
+        } catch (err) {
+          console.warn('[mediaStorage] Failed converting dataUrl to Blob:', err);
+        }
+      }
+      return item;
+    }
+
+    return null;
+  },
+
+  /**
+   * Revokes cached blob URL for a key when media is updated or removed
+   */
+  revokePlayableUrl(key) {
+    if (this.blobUrlCache.has(key)) {
+      try {
+        if (typeof URL !== 'undefined') {
+          URL.revokeObjectURL(this.blobUrlCache.get(key));
+        }
+      } catch {
+        // ignore
+      }
+      this.blobUrlCache.delete(key);
+    }
+  },
+
   /**
    * Removes a media item from IndexedDB
    * @param {string} key
@@ -99,6 +175,7 @@ export const mediaStorage = {
    */
   async removeItem(key) {
     if (!key) return;
+    this.revokePlayableUrl(key);
     memoryFallback.delete(key);
     const db = await openDB();
     if (!db) return;

@@ -67,8 +67,13 @@ export default function MusicEditorTab() {
     if (!sourceUrl) return;
 
     if (sourceUrl.startsWith('indexeddb://')) {
-      const resolved = await mediaStorage.getItem('custom_audio_file');
+      const resolved = await mediaStorage.getPlayableUrl('custom_audio_file');
       if (resolved) sourceUrl = resolved;
+    }
+
+    if (!sourceUrl) {
+      alert('Audio file not found. Please upload again.');
+      return;
     }
 
     if (!audioPreviewRef.current) {
@@ -77,7 +82,7 @@ export default function MusicEditorTab() {
       audioPreviewRef.current.onended = () => setIsPlayingTest(false);
       audioPreviewRef.current.onerror = () => {
         setIsPlayingTest(false);
-        alert('Failed to stream audio: ' + (sourceUrl.length > 50 ? sourceUrl.slice(0, 50) + '...' : sourceUrl));
+        alert('Failed to stream audio preview.');
       };
     } else {
       if (audioPreviewRef.current.src !== sourceUrl) {
@@ -98,6 +103,34 @@ export default function MusicEditorTab() {
         });
     }
   };
+
+  // Teardown test audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+        audioPreviewRef.current = null;
+      }
+    };
+  }, []);
+
+  // Retrieve audio file metadata on mount if local audio is active
+  useEffect(() => {
+    if (music?.audioUrl?.startsWith('indexeddb://') || music?.audioUrl?.startsWith('data:audio')) {
+      mediaStorage.getItem('custom_audio_meta').then((meta) => {
+        if (meta && typeof meta === 'object') {
+          setAudioFileInfo(meta);
+        } else {
+          setAudioFileInfo({
+            name: music?.title || 'Custom Track',
+            size: 'Local File',
+          });
+        }
+      });
+    } else {
+      setAudioFileInfo(null);
+    }
+  }, [music?.audioUrl]);
 
   const handleVolumeChange = (e) => {
     const val = parseFloat(e.target.value);
@@ -127,14 +160,19 @@ export default function MusicEditorTab() {
     reader.onload = async (event) => {
       const audioDataUrl = event.target.result;
 
-      // Pre-cache to high-capacity IndexedDB immediately
+      // Store in high-capacity IndexedDB cache
       try {
         await mediaStorage.setItem('custom_audio_file', audioDataUrl);
+        await mediaStorage.setItem('custom_audio_meta', {
+          name: file.name,
+          size: `${fileSizeMb} MB`,
+        });
       } catch (err) {
-        console.warn('Failed pre-caching audio to mediaStorage:', err);
+        console.warn('Failed caching audio to mediaStorage:', err);
       }
 
-      handleChange('audioUrl', audioDataUrl);
+      // CRITICAL: Set audioUrl to lightweight pointer so React never renders or clones a 13.5MB string!
+      handleChange('audioUrl', 'indexeddb://custom_audio_file');
 
       // Auto-suggest title from filename if title is default or empty
       const baseName = file.name.replace(/\.[^/.]+$/, '').trim();
@@ -452,11 +490,61 @@ export default function MusicEditorTab() {
           className="hidden"
         />
 
+        {/* If local audio is active, show the Dedicated Local Audio Card */}
+        {(music?.audioUrl?.startsWith('indexeddb://') || music?.audioUrl?.startsWith('data:audio') || audioFileInfo) ? (
+          <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-between gap-3 animate-fade-in shadow-glow">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 shrink-0">
+                <Music className="w-4 h-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-bold text-white text-xs truncate">
+                  {audioFileInfo?.name || music?.title || 'Uploaded Audio Track'}
+                </p>
+                <p className="text-[10px] text-emerald-400 font-mono">
+                  Offline Audio File Active {audioFileInfo?.size ? `(${audioFileInfo.size})` : ''}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => audioFileInputRef.current?.click()}
+                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[10px] font-mono transition-all"
+              >
+                Change File
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleChange('audioUrl', 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3');
+                  setAudioFileInfo(null);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 text-[10px] font-mono transition-all"
+                title="Reset to default demo audio"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <input
           type="url"
-          value={music?.audioUrl || ''}
-          onChange={(e) => handleChange('audioUrl', e.target.value)}
-          placeholder="https://... audio.mp3 or upload local audio file above"
+          value={
+            (music?.audioUrl?.startsWith('indexeddb://') || music?.audioUrl?.startsWith('data:audio'))
+              ? ''
+              : (music?.audioUrl || '')
+          }
+          onChange={(e) => {
+            handleChange('audioUrl', e.target.value);
+            setAudioFileInfo(null);
+          }}
+          placeholder={
+            (music?.audioUrl?.startsWith('indexeddb://') || music?.audioUrl?.startsWith('data:audio'))
+              ? 'Local file active. Or paste an external https:// MP3 URL here to override...'
+              : 'https://... audio.mp3 or upload local audio file above'
+          }
           className="w-full px-3 py-2 rounded-xl bg-black/50 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary text-[11px]"
         />
 

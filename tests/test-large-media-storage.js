@@ -87,13 +87,23 @@ async function runTest() {
   assert.ok(storedInMedia, 'mediaStorage must have stored the full audio');
   assert.equal(storedInMedia.length, largeAudioDataUrl.length, 'mediaStorage must preserve full audio bytes');
 
-  console.log('[4/4] Calling dataProvider.fetchData to verify full restoration...');
+  console.log('[4/4] Calling dataProvider.fetchData to verify lightweight audio pointer...');
   const fetched = await dataProvider.fetchData();
   assert.equal(fetched.music.title, 'PLEASE - Atom ชนกันต์');
-  assert.equal(fetched.music.audioUrl.length, largeAudioDataUrl.length);
-  assert.ok(fetched.music.audioUrl.startsWith('data:audio/mpeg;base64,AAAA'));
+  assert.equal(
+    fetched.music.audioUrl,
+    'indexeddb://custom_audio_file',
+    'fetchData must return lightweight pointer to preserve React main-thread performance'
+  );
 
-  console.log('\n[PASS] Large media offload & rehydration verified 100%!');
+  const playableUrl = await mediaStorage.getPlayableUrl('custom_audio_file');
+  assert.ok(playableUrl, 'mediaStorage.getPlayableUrl must resolve playable audio URL');
+  assert.ok(
+    playableUrl.startsWith('blob:') || playableUrl.startsWith('data:audio'),
+    'Playable URL must be valid stream URL'
+  );
+
+  console.log('\n[PASS] Large media offload & lightweight pointer verified 100%!');
 }
 
 runTest().catch((err) => {
