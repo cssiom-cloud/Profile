@@ -195,24 +195,31 @@ export default function LiveCustomizerDrawer() {
   return (
     <AnimatePresence>
       {customizerOpen && (
-        <div className="fixed inset-0 z-[60] overflow-hidden flex justify-end pointer-events-auto">
+        <motion.div
+          key="live-customizer-container"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="fixed inset-0 z-[60] overflow-hidden flex justify-end pointer-events-none"
+        >
           {/* Backdrop with fade animation */}
           <motion.div
             key="drawer-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             onClick={(e) => {
               e.stopPropagation();
               setCustomizerOpen(false);
             }}
             aria-hidden="true"
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-0 cursor-pointer"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-0 cursor-pointer pointer-events-auto"
             title="Click backdrop to close customizer and view live website"
           />
 
-          {/* Slide-over Drawer with Framer Motion spring physics */}
+          {/* Slide-over Drawer with clean slide transition */}
           <motion.aside
             key="drawer-panel"
             role="dialog"
@@ -221,7 +228,7 @@ export default function LiveCustomizerDrawer() {
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="relative z-10 w-full max-w-md md:max-w-lg h-full bg-theme-surface/95 backdrop-blur-2xl border-l border-theme-glow/40 shadow-2xl flex flex-col font-sans text-theme-main select-text pointer-events-auto"
           >
             {/* Drawer Header */}
@@ -474,7 +481,7 @@ export default function LiveCustomizerDrawer() {
               </div>
             </footer>
           </motion.aside>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

@@ -267,6 +267,7 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
               await el.play();
               if (isMounted) {
                 setIsPlaying(true);
+                setAudioError(null);
                 setAutoplayWaiting(false);
               }
             }
@@ -315,6 +316,13 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
     }
   }, [music.defaultVolume]);
 
+  // Automatically clear any audio error as soon as playback starts or progress moves
+  useEffect(() => {
+    if (isPlaying || safeCurrentTime > 0) {
+      setAudioError(null);
+    }
+  }, [isPlaying, safeCurrentTime]);
+
   // ---------------------------------------------------------------------------
   // Audio Element Event Handlers
   // ---------------------------------------------------------------------------
@@ -331,6 +339,9 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
     const audio = audioRef.current;
     if (!audio || isScrubbing) return;
     setCurrentTime(audio.currentTime);
+    if (audioError) {
+      setAudioError(null);
+    }
   };
 
   const handleLoadedMetadata = () => {
@@ -896,7 +907,7 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
 
 
           {/* Graceful Audio Error Notification Banner */}
-          {audioError && !isLocalDeviceOnly && (
+          {audioError && !isPlaying && safeCurrentTime === 0 && !isLocalDeviceOnly && (
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono mt-1">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />

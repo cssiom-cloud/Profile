@@ -327,7 +327,14 @@ export default function ImageCropModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[70] overflow-y-auto flex items-center justify-center p-3 sm:p-4">
+        <motion.div
+          key="crop-modal-portal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[70] overflow-y-auto flex items-center justify-center p-3 sm:p-4 pointer-events-none"
+        >
           {/* Backdrop */}
           <motion.div
             key="crop-backdrop"
@@ -335,7 +342,7 @@ export default function ImageCropModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md pointer-events-auto"
             aria-hidden="true"
           />
 
@@ -349,7 +356,7 @@ export default function ImageCropModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-            className="relative z-10 w-full max-w-xl bg-theme-surface/95 backdrop-blur-2xl border border-theme-primary/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col font-mono text-xs text-theme-main max-h-[92vh]"
+            className="relative z-10 w-full max-w-xl bg-theme-surface/95 backdrop-blur-2xl border border-theme-primary/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col font-mono text-xs text-theme-main max-h-[92vh] pointer-events-auto"
           >
             {/* Header */}
             <header className="p-4 sm:p-5 border-b border-theme-glow/20 flex items-center justify-between shrink-0 bg-black/30">
@@ -534,7 +541,7 @@ export default function ImageCropModal({
               </button>
             </footer>
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

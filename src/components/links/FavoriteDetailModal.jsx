@@ -4,9 +4,10 @@
  *
  * Capabilities:
  * - High-res top banner header (or stylized theme gradient fallback)
- * - Full un-truncated description notes (multiline, markdown/plain text, rich typography)
+ * - Clean layout without overlapping elements (icon floats naturally between banner and body)
+ * - Full un-truncated description notes (multiline, rich typography)
  * - Category badge, custom tier pill, and external link action
- * - Smooth Framer Motion scale entrance, backdrop blur, ESC & outside click dismiss
+ * - Smooth Framer Motion entrance, backdrop blur, ESC & outside click dismiss
  */
 
 import React, { useEffect } from 'react';
@@ -18,7 +19,6 @@ import {
   Star,
   Sparkles,
   Layers,
-  Heart,
 } from 'lucide-react';
 import { CATEGORY_META } from './FavoritesSection.jsx';
 
@@ -58,32 +58,40 @@ export default function FavoriteDetailModal({ item, onClose }) {
 
   return (
     <AnimatePresence>
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="favorite-modal-title"
-      >
-        {/* Backdrop */}
+      {item && (
         <motion.div
+          key="favorite-detail-modal-portal"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
-        />
-
-        {/* Modal Window */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="relative w-full max-w-xl rounded-3xl overflow-hidden bg-theme-surface/95 border border-theme-glow/40 shadow-2xl backdrop-blur-2xl z-10 my-auto text-theme-main"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto pointer-events-none"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="favorite-modal-title"
         >
-          {/* Top Banner Image / Aesthetic Gradient Header */}
-          <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-black/60">
+          {/* Backdrop */}
+          <motion.div
+            key="favorite-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md cursor-pointer pointer-events-auto"
+          />
+
+          {/* Modal Window */}
+          <motion.div
+            key="favorite-modal-panel"
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="relative w-full max-w-lg rounded-3xl overflow-hidden bg-theme-surface/95 border border-theme-glow/40 shadow-2xl backdrop-blur-2xl z-10 my-auto text-theme-main pointer-events-auto"
+          >
+          {/* Top Banner Area */}
+          <div className="relative h-36 sm:h-44 w-full overflow-hidden bg-neutral-950">
             {hasBanner ? (
               <img
                 src={item.bannerUrl}
@@ -91,15 +99,15 @@ export default function FavoriteDetailModal({ item, onClose }) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-theme-primary/20 via-theme-surface to-theme-accent/20 flex items-center justify-center relative overflow-hidden">
-                {/* Decorative background grid and icons */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.15)_0%,transparent_70%)]" />
-                <IconComp className="w-20 h-20 text-theme-primary/20 animate-pulse" />
+              <div className="w-full h-full bg-gradient-to-br from-theme-primary/20 via-theme-surface to-theme-accent/25 relative overflow-hidden flex items-center justify-center">
+                {/* Subtle cyber background ambient aura */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,240,255,0.18)_0%,transparent_70%)]" />
+                <div className="w-32 h-32 rounded-full border border-theme-glow/15 animate-pulse" />
               </div>
             )}
 
-            {/* Gradient shadow overlay for readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-theme-surface via-transparent to-black/40" />
+            {/* Gradient shadow overlay for legibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
 
             {/* Close Button */}
             <button
@@ -128,34 +136,49 @@ export default function FavoriteDetailModal({ item, onClose }) {
                 </span>
               )}
             </div>
+          </div>
 
-            {/* Main Icon overlapping banner & content */}
-            <div className="absolute -bottom-5 left-6 flex items-center gap-3 z-20">
-              <div className="p-3 rounded-2xl bg-theme-surface border-2 border-theme-glow/50 text-theme-accent shadow-glow flex items-center justify-center w-14 h-14">
+          {/* Modal Content Body */}
+          <div className="p-6 pt-0 space-y-4">
+            {/* Elevated Icon Box (Floats naturally between banner and content without overlapping text) */}
+            <div className="flex items-end justify-between -mt-9 sm:-mt-11 mb-2 relative z-20">
+              <div className="p-3 rounded-2xl bg-theme-surface border-2 border-theme-glow/60 text-theme-accent shadow-2xl flex items-center justify-center w-16 h-16 sm:w-18 sm:h-18 shrink-0">
                 {isIconImage ? (
                   <img
                     src={item.iconOrImage}
                     alt={item.title}
-                    className="w-8 h-8 rounded-lg object-cover"
+                    className="w-full h-full rounded-xl object-cover"
                   />
                 ) : (
-                  <IconComp className="w-7 h-7" />
+                  <IconComp className="w-8 h-8 sm:w-9 sm:h-9" />
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* Modal Content Body */}
-          <div className="p-6 pt-8 space-y-4">
-            {/* Title */}
-            <div>
+              {item.linkUrl && (
+                <a
+                  href={item.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-theme-primary/20 hover:bg-theme-primary/30 text-theme-primary border border-theme-primary/40 font-mono text-xs font-semibold transition-all shadow-glow hover:scale-105 active:scale-95"
+                >
+                  <span>Visit Link</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+
+            {/* Title & Category Sub-label */}
+            <div className="space-y-1">
               <h2
                 id="favorite-modal-title"
-                className="text-xl sm:text-2xl font-bold font-sans text-theme-main tracking-tight flex items-center gap-2"
+                className="text-xl sm:text-2xl font-bold font-sans text-theme-main tracking-tight leading-snug"
               >
-                <span>{item.title}</span>
-                <Heart className="w-5 h-5 text-theme-accent fill-theme-accent/20 inline-block shrink-0" />
+                {item.title}
               </h2>
+              <div className="text-xs font-mono text-theme-sub flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-theme-accent animate-pulse" />
+                <span>Category: {meta.label || item.category}</span>
+              </div>
             </div>
 
             {/* Full Un-truncated Subtitle / Description Notes */}
@@ -170,37 +193,19 @@ export default function FavoriteDetailModal({ item, onClose }) {
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="pt-2 flex items-center justify-between gap-3 border-t border-theme-glow/20 flex-wrap">
-              <div className="text-xs font-mono text-theme-sub flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-theme-accent animate-pulse" />
-                <span>Category: {item.category}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {item.linkUrl && (
-                  <a
-                    href={item.linkUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-theme-primary/20 hover:bg-theme-primary/30 text-theme-primary border border-theme-primary/40 font-mono text-xs font-bold transition-all shadow-glow hover:scale-105 active:scale-95"
-                  >
-                    <span>Visit Link</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                )}
-
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-mono text-xs transition-all active:scale-95"
-                >
-                  Close
-                </button>
-              </div>
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-theme-glow/20">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-mono text-xs font-medium transition-all active:scale-95 cursor-pointer"
+              >
+                Close
+              </button>
             </div>
           </div>
         </motion.div>
-      </div>
-    </AnimatePresence>
+      </motion.div>
+    )}
+  </AnimatePresence>
   );
 }
