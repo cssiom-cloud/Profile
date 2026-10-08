@@ -477,7 +477,7 @@ export default function MusicEditorTab() {
               onClick={() =>
                 handleChange(
                   'audioUrl',
-                  'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3'
+                  'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3'
                 )
               }
               className="text-[10px] text-theme-primary hover:underline"
@@ -522,7 +522,7 @@ export default function MusicEditorTab() {
               <button
                 type="button"
                 onClick={() => {
-                  handleChange('audioUrl', 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3');
+                  handleChange('audioUrl', 'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3');
                   setAudioFileInfo(null);
                 }}
                 className="px-2.5 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 text-[10px] font-mono transition-all"

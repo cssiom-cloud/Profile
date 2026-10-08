@@ -202,7 +202,7 @@ export const DEFAULT_PROFILE_DATA = {
   music: {
     title: 'Synthetic Serenade',
     artist: 'Lofi Tokyo Beats',
-    audioUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
+    audioUrl: 'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3',
     coverUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=300&q=80',
     spotifyUrl: 'https://open.spotify.com',
     youtubeUrl: 'https://youtube.com',

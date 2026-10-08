@@ -548,6 +548,19 @@ export const dataProvider = {
             }
 
             // Sync site settings
+            let cloudAudioUrl = lightweight.music.audioUrl;
+            if (cloudAudioUrl && cloudAudioUrl.startsWith('indexeddb://')) {
+              try {
+                const key = cloudAudioUrl.replace('indexeddb://', '') || 'custom_audio_file';
+                const storedBase64 = await mediaStorage.getItem(key);
+                if (storedBase64 && typeof storedBase64 === 'string' && storedBase64.length <= 6 * 1024 * 1024) {
+                  cloudAudioUrl = storedBase64;
+                }
+              } catch (readErr) {
+                console.warn('[DataProvider] Failed reading audio for Supabase sync:', readErr);
+              }
+            }
+
             const { error: setErr } = await supabase.from('site_settings').upsert({
               profile_id: profileId,
               theme_preset: lightweight.settings.themePreset,
@@ -556,7 +569,7 @@ export const dataProvider = {
               particle_density: lightweight.settings.particleDensity,
               music_title: lightweight.music.title,
               music_artist: lightweight.music.artist,
-              music_audio_url: lightweight.music.audioUrl,
+              music_audio_url: cloudAudioUrl,
               music_cover_url: lightweight.music.coverUrl,
               music_spotify_url: lightweight.music.spotifyUrl,
               music_youtube_url: lightweight.music.youtubeUrl,

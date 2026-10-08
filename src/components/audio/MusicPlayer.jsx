@@ -353,6 +353,15 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
       setAudioError(null);
       setIsLoading(true);
 
+      // Ensure audio element is unmuted and volume is audible
+      if (audio.muted) {
+        audio.muted = false;
+      }
+      if (typeof audio.volume === 'number' && audio.volume < 0.2) {
+        audio.volume = 0.7;
+        setVolume(0.7);
+      }
+
       // Verify audio source is ready and not indexeddb
       if (!audio.src || audio.src.startsWith('indexeddb://') || !playableSrc) {
         let targetSrc = playableSrc;
@@ -400,8 +409,10 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
   }, [isPlaying, playableSrc, music.audioUrl, isLocalDeviceOnly]);
 
   const handleSeekChange = (e) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
+    const val = parseFloat(e.target.value);
+    if (Number.isFinite(val) && val >= 0) {
+      setCurrentTime(val);
+    }
   };
 
   const handleSeekStart = () => {
@@ -412,9 +423,17 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
     setIsScrubbing(false);
     const audio = audioRef.current;
     if (audio) {
-      const newTime = parseFloat(e.target.value);
-      audio.currentTime = newTime;
-      setCurrentTime(newTime);
+      // Safely read target value or fallback to current reactive currentTime state
+      const rawVal = e?.target?.value !== undefined ? parseFloat(e.target.value) : NaN;
+      const targetTime = Number.isFinite(rawVal) ? rawVal : currentTime;
+      if (Number.isFinite(targetTime) && targetTime >= 0) {
+        try {
+          audio.currentTime = targetTime;
+          setCurrentTime(targetTime);
+        } catch (err) {
+          console.warn('[MusicPlayer] Seek error:', err);
+        }
+      }
     }
   };
 
@@ -824,12 +843,35 @@ export default function MusicPlayer({ music: propMusic, variant = 'card', classN
 
           {/* Friendly device notice when custom audio was uploaded only on the owner's PC */}
           {isLocalDeviceOnly && !audioError && (
-            <div className="flex items-center justify-between p-2.5 rounded-xl bg-theme-primary/10 border border-theme-primary/20 text-theme-primary text-xs font-mono mt-1">
-              <div className="flex items-center gap-2">
-                <Music className="w-3.5 h-3.5 flex-shrink-0 animate-pulse" />
-                <span className="text-[11px] truncate max-w-[220px] sm:max-w-xs">
-                  ไฟล์เสียงอยู่ในคอมพิวเตอร์ของคุณ • กดฟังเพลงเต็มได้ที่ Spotify หรือ YouTube
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-theme-primary/10 border border-theme-primary/25 text-theme-primary text-xs font-mono mt-1.5 animate-fade-in shadow-sm">
+              <div className="flex items-center gap-2 min-w-0">
+                <Music className="w-3.5 h-3.5 flex-shrink-0 animate-pulse text-theme-primary" />
+                <span className="text-[11px] leading-normal font-sans text-theme-main">
+                  ไฟล์เสียงนี้อัปโหลดเฉพาะในเครื่องต้นทาง (เล่นเพลงตัวอย่างแทน)
                 </span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] font-sans shrink-0 pl-5 sm:pl-0">
+                <span className="text-theme-sub text-[10px]">ฟังเพลงเต็ม:</span>
+                {music.spotifyUrl && (
+                  <a
+                    href={music.spotifyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-[#1db954] hover:underline"
+                  >
+                    Spotify
+                  </a>
+                )}
+                {music.youtubeUrl && (
+                  <a
+                    href={music.youtubeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-[#ff4444] hover:underline"
+                  >
+                    YouTube
+                  </a>
+                )}
               </div>
             </div>
           )}

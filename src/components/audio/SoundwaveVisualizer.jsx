@@ -118,6 +118,15 @@ export default function SoundwaveVisualizer({
       return;
     }
 
+    // On mobile devices (iOS / Android) or mobile browsers, Web Audio createMediaElementSource
+    // redirects and silences the media element if AudioContext is suspended or CORS restricted.
+    // Use high-performance synthetic mode on mobile to guarantee native audible sound!
+    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+    if (isMobile) {
+      engineModeRef.current = 'synthetic';
+      return;
+    }
+
     try {
       // 1. Inspect cache to avoid InvalidStateError
       let graph = audioSourceCache.get(audioEl);
