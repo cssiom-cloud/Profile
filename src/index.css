@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Dynamic Theme Presets (CSS Custom Properties)
+   ========================================================================== */
+
+/* 1. Cyber Neon (Default Preset) */
+:root,
+[data-theme='cyber-neon'] {
+  --bg-base: #090a0f;
+  --bg-surface: rgba(16, 20, 31, 0.75);
+  --bg-surface-hover: rgba(24, 30, 46, 0.88);
+  --accent-primary: #00f0ff;
+  --accent-secondary: #ff007f;
+  --text-main: #f1f5f9;
+  --text-sub: #94a3b8;
+  --border-glow: rgba(0, 240, 255, 0.35);
+  --particle-color: #00f0ff;
+}
+
+/* 2. Midnight Glow */
+[data-theme='midnight-glow'] {
+  --bg-base: #0b0f19;
+  --bg-surface: rgba(17, 24, 39, 0.8);
+  --bg-surface-hover: rgba(30, 41, 59, 0.9);
+  --accent-primary: #a855f7;
+  --accent-secondary: #6366f1;
+  --text-main: #f8fafc;
+  --text-sub: #94a3b8;
+  --border-glow: rgba(168, 85, 247, 0.32);
+  --particle-color: #a855f7;
+}
+
+/* 3. Lo-Fi Aesthetic */
+[data-theme='lofi-aesthetic'] {
+  --bg-base: #1a1816;
+  --bg-surface: rgba(38, 34, 31, 0.78);
+  --bg-surface-hover: rgba(54, 48, 44, 0.9);
+  --accent-primary: #e09f67;
+  --accent-secondary: #88a892;
+  --text-main: #faebd7;
+  --text-sub: #bcaaa4;
+  --border-glow: rgba(224, 159, 103, 0.28);
+  --particle-color: #e09f67;
+}
+
+/* 4. Clean Minimalist */
+[data-theme='clean-minimalist'] {
+  --bg-base: #09090b;
+  --bg-surface: rgba(24, 24, 27, 0.72);
+  --bg-surface-hover: rgba(39, 39, 42, 0.88);
+  --accent-primary: #38bdf8;
+  --accent-secondary: #94a3b8;
+  --text-main: #ffffff;
+  --text-sub: #a1a1aa;
+  --border-glow: rgba(255, 255, 255, 0.16);
+  --particle-color: #38bdf8;
+}
+
+/* 5. Retro Vaporwave */
+[data-theme='retro-vaporwave'] {
+  --bg-base: #160529;
+  --bg-surface: rgba(36, 12, 64, 0.82);
+  --bg-surface-hover: rgba(56, 18, 99, 0.92);
+  --accent-primary: #ff71ce;
+  --accent-secondary: #01cdfe;
+  --text-main: #fffb96;
+  --text-sub: #d8b4e2;
+  --border-glow: rgba(255, 113, 206, 0.42);
+  --particle-color: #ff71ce;
+}
+
+/* ==========================================================================
+   Global Utilities & Glassmorphism
+   ========================================================================== */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  overflow-x: hidden;
+  transition: background-color 0.4s ease, color 0.4s ease;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Glassmorphism Panel Utility */
+.glass-panel {
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glow);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--accent-primary);
+  box-shadow: 0 12px 40px -4px var(--border-glow);
+}
+
+/* Glass Input Utility */
+.glass-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-glow);
+  color: var(--text-main);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--border-glow);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-glow);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary);
+}
