@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -32,6 +33,9 @@ jobs:
         run: npm ci || npm install
 
       - name: Build Static Site
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://fhhfieecrbcvbbpsoyah.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZoaGZpZWVjcmJjdmJicHNveWFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NDQ1MTMsImV4cCI6MjEwNzAyMDUxM30.jEYLPZ2H3XNakyCJ2lVSlL_0iTXkisBPQqt2mA4Rmvo' }}
         run: npm run build
 
       - name: Upload GitHub Pages Artifact
