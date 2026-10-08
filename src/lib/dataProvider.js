@@ -11,12 +11,27 @@ export const LOCAL_STORAGE_KEY = 'profile_hub_local_storage_v1';
 /**
  * Helper to produce deep clones preventing shared object reference mutations
  */
+/**
+ * Helper to produce deep clones preventing shared object reference mutations
+ */
 const deepClone = (obj) => {
   try {
     return structuredClone(obj);
   } catch {
     return JSON.parse(JSON.stringify(obj));
   }
+};
+
+/**
+ * Timeout helper to prevent hanging cloud network requests
+ */
+const fetchWithTimeout = (promise, ms = 3500) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms)
+    ),
+  ]);
 };
 
 export const dataProvider = {
@@ -29,24 +44,106 @@ export const dataProvider = {
   },
 
   /**
+   * Normalizes a raw object into compliant Profile Data structure
+   */
+  normalizePayload(parsed) {
+    if (!parsed || typeof parsed !== 'object') {
+      return deepClone(DEFAULT_PROFILE_DATA);
+    }
+
+    let normalizedProfile;
+    if (typeof parsed.profile === 'string') {
+      normalizedProfile = {
+        ...deepClone(DEFAULT_PROFILE_DATA.profile),
+        name: parsed.profile || DEFAULT_PROFILE_DATA.profile.name,
+      };
+    } else if (parsed.profile && typeof parsed.profile === 'object' && !Array.isArray(parsed.profile)) {
+      normalizedProfile = {
+        ...deepClone(DEFAULT_PROFILE_DATA.profile),
+        ...parsed.profile,
+        name: typeof parsed.profile.name === 'string' ? parsed.profile.name : DEFAULT_PROFILE_DATA.profile.name,
+      };
+    } else {
+      normalizedProfile = deepClone(DEFAULT_PROFILE_DATA.profile);
+    }
+
+    const normalizedLinks = Array.isArray(parsed.links)
+      ? parsed.links
+      : deepClone(DEFAULT_PROFILE_DATA.links);
+
+    const normalizedFavorites = Array.isArray(parsed.favorites)
+      ? parsed.favorites
+      : deepClone(DEFAULT_PROFILE_DATA.favorites);
+
+    const normalizedMusic = (parsed.music && typeof parsed.music === 'object' && !Array.isArray(parsed.music))
+      ? { ...deepClone(DEFAULT_PROFILE_DATA.music), ...parsed.music }
+      : deepClone(DEFAULT_PROFILE_DATA.music);
+
+    const normalizedSettings = (parsed.settings && typeof parsed.settings === 'object' && !Array.isArray(parsed.settings))
+      ? { ...deepClone(DEFAULT_PROFILE_DATA.settings), ...parsed.settings }
+      : deepClone(DEFAULT_PROFILE_DATA.settings);
+
+    return {
+      _updatedAt: parsed._updatedAt || 0,
+      profile: normalizedProfile,
+      links: normalizedLinks,
+      favorites: normalizedFavorites,
+      music: normalizedMusic,
+      settings: normalizedSettings,
+    };
+  },
+
+  /**
+   * Silently synchronizes data to Supabase in the background without blocking UI
+   */
+  async syncToSupabaseSilently(data) {
+    try {
+      if (this.isSupabaseActive()) {
+        await this.saveData(data);
+      }
+    } catch (err) {
+      console.warn('[DataProvider] Background sync warning:', err);
+    }
+  },
+
+  /**
    * Fetches profile data following the cascade:
-   * 1. Supabase (if active)
+   * 1. Supabase (if active, with 3.5s timeout)
    * 2. LocalStorage cache (with schema normalization & deep merge)
    * 3. Built-in seed data (DEFAULT_PROFILE_DATA)
+   * Safeguard: LocalStorage user customizations are NEVER overwritten by stale Supabase seeds.
    * @returns {Promise<typeof DEFAULT_PROFILE_DATA>}
    */
   async fetchData() {
+    // Read local cache first to inspect last user edits
+    let localData = null;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (cached !== null) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') {
+            localData = parsed;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[DataProvider] LocalStorage pre-read failed:', e);
+    }
+
     // 1. Try Supabase cloud if active
     if (this.isSupabaseActive()) {
       try {
-        const { data: profileRecord, error: profileErr } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle();
+        const cloudResult = await fetchWithTimeout((async () => {
+          const { data: profileRecord, error: profileErr } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
 
-        if (!profileErr && profileRecord) {
+          if (profileErr || !profileRecord) return null;
+
           const profileId = profileRecord.id;
 
           const [linksRes, favsRes, settingsRes] = await Promise.all([
@@ -55,7 +152,13 @@ export const dataProvider = {
             supabase.from('site_settings').select('*').eq('profile_id', profileId).maybeSingle(),
           ]);
 
+          return { profileRecord, linksRes, favsRes, settingsRes };
+        })(), 3500);
+
+        if (cloudResult && cloudResult.profileRecord) {
+          const { profileRecord, linksRes, favsRes, settingsRes } = cloudResult;
           const cloudData = {
+            _updatedAt: profileRecord.updated_at ? new Date(profileRecord.updated_at).getTime() : 0,
             profile: {
               name: profileRecord.name || DEFAULT_PROFILE_DATA.profile.name,
               handle: profileRecord.handle || DEFAULT_PROFILE_DATA.profile.handle,
@@ -65,6 +168,10 @@ export const dataProvider = {
               bannerUrl: profileRecord.banner_url || DEFAULT_PROFILE_DATA.profile.bannerUrl,
               location: profileRecord.location || DEFAULT_PROFILE_DATA.profile.location,
               statusBadge: profileRecord.status_badge || DEFAULT_PROFILE_DATA.profile.statusBadge,
+              footerCraftedBy: profileRecord.footer_crafted_by || DEFAULT_PROFILE_DATA.profile.footerCraftedBy,
+              footerCopyright: profileRecord.footer_copyright || DEFAULT_PROFILE_DATA.profile.footerCopyright,
+              footerCredits: profileRecord.footer_credits || DEFAULT_PROFILE_DATA.profile.footerCredits,
+              showFooterCredits: profileRecord.show_footer_credits ?? DEFAULT_PROFILE_DATA.profile.showFooterCredits,
             },
             links: (linksRes.data && linksRes.data.length > 0)
               ? linksRes.data.map((l) => ({
@@ -108,6 +215,20 @@ export const dataProvider = {
             },
           };
 
+          // Conflict resolution: protect local edits against stale cloud seeds
+          const localTimestamp = localData?._updatedAt || 0;
+          const cloudTimestamp = cloudData._updatedAt || 0;
+          const localIsCustomized = Boolean(
+            localData?.profile?.name && localData.profile.name !== DEFAULT_PROFILE_DATA.profile.name
+          );
+          const cloudIsDefaultSeed = profileRecord.name === DEFAULT_PROFILE_DATA.profile.name;
+
+          if (localData && (localTimestamp > cloudTimestamp || (localIsCustomized && cloudIsDefaultSeed))) {
+            // Local storage has newer or customized data! Do not overwrite local.
+            this.syncToSupabaseSilently(localData);
+            return this.normalizePayload(localData);
+          }
+
           // Cache cloud data to LocalStorage for offline resilience
           try {
             if (typeof localStorage !== 'undefined') {
@@ -120,69 +241,13 @@ export const dataProvider = {
           return cloudData;
         }
       } catch (err) {
-        console.warn('[DataProvider] Supabase fetch failed, continuing to LocalStorage:', err);
+        console.warn('[DataProvider] Supabase fetch timed out or failed, falling back to LocalStorage:', err);
       }
     }
 
     // 2. Fallback to LocalStorage with schema normalization & deep merge
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (cached !== null) {
-          const parsed = JSON.parse(cached);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            const hasProfile = Boolean(
-              parsed.profile &&
-              (typeof parsed.profile === 'string' || (typeof parsed.profile === 'object' && !Array.isArray(parsed.profile)))
-            );
-
-            // Accept and deep merge if either valid profile or links array is present
-            if (hasProfile || Array.isArray(parsed.links)) {
-              let normalizedProfile;
-              if (typeof parsed.profile === 'string') {
-                normalizedProfile = {
-                  ...deepClone(DEFAULT_PROFILE_DATA.profile),
-                  name: parsed.profile || DEFAULT_PROFILE_DATA.profile.name,
-                };
-              } else if (parsed.profile && typeof parsed.profile === 'object' && !Array.isArray(parsed.profile)) {
-                normalizedProfile = {
-                  ...deepClone(DEFAULT_PROFILE_DATA.profile),
-                  ...parsed.profile,
-                  name: typeof parsed.profile.name === 'string' ? parsed.profile.name : DEFAULT_PROFILE_DATA.profile.name,
-                };
-              } else {
-                normalizedProfile = deepClone(DEFAULT_PROFILE_DATA.profile);
-              }
-
-              const normalizedLinks = Array.isArray(parsed.links)
-                ? parsed.links
-                : deepClone(DEFAULT_PROFILE_DATA.links);
-
-              const normalizedFavorites = Array.isArray(parsed.favorites)
-                ? parsed.favorites
-                : deepClone(DEFAULT_PROFILE_DATA.favorites);
-
-              const normalizedMusic = (parsed.music && typeof parsed.music === 'object' && !Array.isArray(parsed.music))
-                ? { ...deepClone(DEFAULT_PROFILE_DATA.music), ...parsed.music }
-                : deepClone(DEFAULT_PROFILE_DATA.music);
-
-              const normalizedSettings = (parsed.settings && typeof parsed.settings === 'object' && !Array.isArray(parsed.settings))
-                ? { ...deepClone(DEFAULT_PROFILE_DATA.settings), ...parsed.settings }
-                : deepClone(DEFAULT_PROFILE_DATA.settings);
-
-              return {
-                profile: normalizedProfile,
-                links: normalizedLinks,
-                favorites: normalizedFavorites,
-                music: normalizedMusic,
-                settings: normalizedSettings,
-              };
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('[DataProvider] LocalStorage read failed, falling back to seed:', e);
+    if (localData) {
+      return this.normalizePayload(localData);
     }
 
     // 3. Built-in seed data fallback
@@ -209,6 +274,7 @@ export const dataProvider = {
 
     // Sanitize data payload before persistence
     const sanitized = {
+      _updatedAt: data._updatedAt || Date.now(),
       profile: (data.profile && typeof data.profile === 'object' && !Array.isArray(data.profile))
         ? { ...DEFAULT_PROFILE_DATA.profile, ...data.profile }
         : deepClone(DEFAULT_PROFILE_DATA.profile),
@@ -246,19 +312,19 @@ export const dataProvider = {
       localError = err;
     }
 
-    // 2. If Supabase is active, persist to PostgreSQL tables
+    // 2. If Supabase is active, persist to PostgreSQL tables (with 4000ms timeout)
     if (this.isSupabaseActive()) {
       try {
-        const { data: existingProfile } = await supabase
-          .from('profiles')
-          .select('id')
-          .limit(1)
-          .maybeSingle();
+        await fetchWithTimeout((async () => {
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .limit(1)
+            .maybeSingle();
 
-        let profileId = existingProfile?.id;
+          let profileId = existingProfile?.id;
 
-        if (profileId) {
-          await supabase.from('profiles').update({
+          const profilePayload = {
             name: sanitized.profile.name,
             handle: sanitized.profile.handle,
             bio: sanitized.profile.bio,
@@ -267,73 +333,74 @@ export const dataProvider = {
             banner_url: sanitized.profile.bannerUrl,
             location: sanitized.profile.location,
             status_badge: sanitized.profile.statusBadge,
-          }).eq('id', profileId);
-        } else {
-          const { data: newProfile, error: insertErr } = await supabase.from('profiles').insert({
-            name: sanitized.profile.name,
-            handle: sanitized.profile.handle,
-            bio: sanitized.profile.bio,
-            quote: sanitized.profile.quote,
-            avatar_url: sanitized.profile.avatarUrl,
-            banner_url: sanitized.profile.bannerUrl,
-            location: sanitized.profile.location,
-            status_badge: sanitized.profile.statusBadge,
-          }).select('id').single();
+          };
 
-          if (insertErr) throw insertErr;
-          profileId = newProfile.id;
-        }
+          if (profileId) {
+            await supabase.from('profiles').update(profilePayload).eq('id', profileId);
+          } else {
+            const { data: newProfile, error: insertErr } = await supabase
+              .from('profiles')
+              .insert(profilePayload)
+              .select('id')
+              .single();
 
-        // Sync links
-        await supabase.from('links').delete().eq('profile_id', profileId);
-        if (sanitized.links && sanitized.links.length > 0) {
-          const linksPayload = sanitized.links.map((link, idx) => ({
-            profile_id: profileId,
-            title: link.title || 'Untitled',
-            url: link.url || 'https://',
-            icon: link.icon || 'Globe',
-            category: link.category || 'social',
-            sort_order: link.order ?? idx,
-            is_active: link.isActive !== false,
-            highlight_color: link.highlightColor || null,
-          }));
-          await supabase.from('links').insert(linksPayload);
-        }
+            if (insertErr) throw insertErr;
+            profileId = newProfile?.id;
+          }
 
-        // Sync favorites
-        await supabase.from('favorites').delete().eq('profile_id', profileId);
-        if (sanitized.favorites && sanitized.favorites.length > 0) {
-          const favsPayload = sanitized.favorites.map((fav, idx) => ({
-            profile_id: profileId,
-            category: fav.category || 'tech',
-            title: fav.title || 'Favorite',
-            subtitle: fav.subtitle || null,
-            icon_or_image: fav.iconOrImage || null,
-            badge: fav.badge || null,
-            sort_order: fav.order ?? idx,
-          }));
-          await supabase.from('favorites').insert(favsPayload);
-        }
+          if (profileId) {
+            // Sync links
+            await supabase.from('links').delete().eq('profile_id', profileId);
+            if (sanitized.links && sanitized.links.length > 0) {
+              const linksPayload = sanitized.links.map((link, idx) => ({
+                profile_id: profileId,
+                title: link.title || 'Untitled',
+                url: link.url || 'https://',
+                icon: link.icon || 'Globe',
+                category: link.category || 'social',
+                sort_order: link.order ?? idx,
+                is_active: link.isActive !== false,
+                highlight_color: link.highlightColor || null,
+              }));
+              await supabase.from('links').insert(linksPayload);
+            }
 
-        // Sync site settings
-        await supabase.from('site_settings').upsert({
-          profile_id: profileId,
-          theme_preset: sanitized.settings.themePreset,
-          layout_style: sanitized.settings.layoutStyle,
-          card_style: sanitized.settings.cardStyle,
-          particle_density: sanitized.settings.particleDensity,
-          music_title: sanitized.music.title,
-          music_artist: sanitized.music.artist,
-          music_audio_url: sanitized.music.audioUrl,
-          music_cover_url: sanitized.music.coverUrl,
-          music_spotify_url: sanitized.music.spotifyUrl,
-          music_youtube_url: sanitized.music.youtubeUrl,
-          custom_css_or_config: {
-            isAutoPlay: sanitized.music.isAutoPlay ?? false,
-            defaultVolume: sanitized.music.defaultVolume ?? 0.7,
-            customColors: sanitized.settings.customColors || null,
-          },
-        }, { onConflict: 'profile_id' });
+            // Sync favorites
+            await supabase.from('favorites').delete().eq('profile_id', profileId);
+            if (sanitized.favorites && sanitized.favorites.length > 0) {
+              const favsPayload = sanitized.favorites.map((fav, idx) => ({
+                profile_id: profileId,
+                category: fav.category || 'tech',
+                title: fav.title || 'Favorite',
+                subtitle: fav.subtitle || null,
+                icon_or_image: fav.iconOrImage || null,
+                badge: fav.badge || null,
+                sort_order: fav.order ?? idx,
+              }));
+              await supabase.from('favorites').insert(favsPayload);
+            }
+
+            // Sync site settings
+            await supabase.from('site_settings').upsert({
+              profile_id: profileId,
+              theme_preset: sanitized.settings.themePreset,
+              layout_style: sanitized.settings.layoutStyle,
+              card_style: sanitized.settings.cardStyle,
+              particle_density: sanitized.settings.particleDensity,
+              music_title: sanitized.music.title,
+              music_artist: sanitized.music.artist,
+              music_audio_url: sanitized.music.audioUrl,
+              music_cover_url: sanitized.music.coverUrl,
+              music_spotify_url: sanitized.music.spotifyUrl,
+              music_youtube_url: sanitized.music.youtubeUrl,
+              custom_css_or_config: {
+                isAutoPlay: sanitized.music.isAutoPlay ?? false,
+                defaultVolume: sanitized.music.defaultVolume ?? 0.7,
+                customColors: sanitized.settings.customColors || null,
+              },
+            }, { onConflict: 'profile_id' });
+          }
+        })(), 4000);
 
         return {
           success: true,
@@ -341,12 +408,12 @@ export const dataProvider = {
           warning: localError ? `Saved to Supabase, but LocalStorage cache failed: ${localError.message}` : undefined,
         };
       } catch (cloudErr) {
-        console.warn('[DataProvider] Supabase sync failed:', cloudErr);
+        console.warn('[DataProvider] Supabase sync failed or timed out:', cloudErr);
         if (localSaved) {
           return {
             success: true,
             source: 'local',
-            warning: 'Changes saved locally. Supabase sync encountered an error.',
+            warning: 'Changes saved locally. Supabase sync timed out or encountered an error.',
           };
         } else {
           return {

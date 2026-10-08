@@ -37,6 +37,7 @@ import {
   Database,
   Loader2,
   Info,
+  Eye,
 } from 'lucide-react';
 
 export default function LiveCustomizerDrawer() {
@@ -132,7 +133,7 @@ export default function LiveCustomizerDrawer() {
   };
 
   // Feature 23: Save Changes with Feedback Toast
-  const handleSave = async () => {
+  const handleSave = async (autoClose = false) => {
     const result = await saveChanges();
     if (result && result.success) {
       setToast({
@@ -140,12 +141,19 @@ export default function LiveCustomizerDrawer() {
         type: 'success',
       });
       setTimeout(() => setToast(null), 3000);
+      if (autoClose) {
+        setTimeout(() => {
+          setCustomizerOpen(false);
+        }, 400);
+      }
+      return result;
     } else {
       setToast({
         message: `Save failed: ${result?.error || 'Unable to persist data'}`,
         type: 'error',
       });
       setTimeout(() => setToast(null), 5000);
+      return result;
     }
   };
 
@@ -191,7 +199,8 @@ export default function LiveCustomizerDrawer() {
               setCustomizerOpen(false);
             }}
             aria-hidden="true"
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-0"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-0 cursor-pointer"
+            title="Click backdrop to close customizer and view live website"
           />
 
           {/* Slide-over Drawer with Framer Motion spring physics */}
@@ -234,14 +243,26 @@ export default function LiveCustomizerDrawer() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setCustomizerOpen(false)}
-                className="p-2 rounded-xl text-theme-sub hover:text-white hover:bg-white/10 transition-colors"
-                aria-label="Close customizer drawer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCustomizerOpen(false)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-theme-sub hover:text-white border border-theme-glow/30 transition-all text-xs font-mono cursor-pointer"
+                  title="Close customizer and interact with the website"
+                >
+                  <Eye className="w-3.5 h-3.5 text-theme-primary" />
+                  <span className="hidden sm:inline">View Site (ดูเว็บ)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCustomizerOpen(false)}
+                  className="p-2 rounded-xl text-theme-sub hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Close customizer drawer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </header>
 
             {/* Notification Toast Banner within Drawer */}
@@ -263,6 +284,16 @@ export default function LiveCustomizerDrawer() {
                   <Info className="w-4 h-4 shrink-0 text-cyan-400" />
                 )}
                 <span className="flex-1">{toast.message}</span>
+                {toast.type === 'success' && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomizerOpen(false)}
+                    className="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/40 text-[10px] font-bold cursor-pointer"
+                    title="Close drawer to interact with site"
+                  >
+                    View Site &rarr;
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setToast(null)}
@@ -381,9 +412,21 @@ export default function LiveCustomizerDrawer() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleSave}
+                  onClick={() => handleSave(true)}
                   disabled={saveStatus === 'saving'}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold font-mono text-xs tracking-wider uppercase hover:opacity-95 shadow-glow transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-theme-surface border border-theme-glow/40 text-theme-primary hover:bg-theme-primary/10 hover:border-theme-primary font-mono text-xs transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  title="Save changes and close drawer to view live site"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Save &amp; View (บันทึก &amp; ดูเว็บ)</span>
+                  <span className="sm:hidden">Save &amp; View</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSave(false)}
+                  disabled={saveStatus === 'saving'}
+                  className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-theme-primary to-theme-accent text-black font-bold font-mono text-xs tracking-wider uppercase hover:opacity-95 shadow-glow transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {saveStatus === 'saving' ? (
                     <>

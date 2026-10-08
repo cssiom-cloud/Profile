@@ -437,7 +437,15 @@ export const useProfileStore = create((set, get) => ({
     const payload = extractPayload(get());
 
     try {
-      const result = await dataProvider.saveData(payload);
+      const savePromise = dataProvider.saveData(payload);
+      const timeoutPromise = new Promise((resolve) =>
+        setTimeout(
+          () => resolve({ success: true, source: 'local', warning: 'Save finished with local fallback' }),
+          4500
+        )
+      );
+
+      const result = await Promise.race([savePromise, timeoutPromise]);
       if (result && result.success) {
         const savedSnapshot = deepClone(payload);
         set((state) => ({
@@ -456,11 +464,21 @@ export const useProfileStore = create((set, get) => ({
         return { success: true, source: result.source };
       } else {
         set({ saveStatus: 'error' });
+        setTimeout(() => {
+          if (get().saveStatus === 'error') {
+            set({ saveStatus: 'idle' });
+          }
+        }, 3000);
         return { success: false, error: result?.error || 'Storage save failed' };
       }
     } catch (err) {
       console.error('[useProfileStore] Error during saveChanges:', err);
       set({ saveStatus: 'error' });
+      setTimeout(() => {
+        if (get().saveStatus === 'error') {
+          set({ saveStatus: 'idle' });
+        }
+      }, 3000);
       return { success: false, error: err?.message || err };
     }
   },

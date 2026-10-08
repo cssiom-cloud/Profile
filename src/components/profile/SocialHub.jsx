@@ -111,14 +111,18 @@ export default function SocialHub({ className = '' }) {
       <div className="space-y-1">
         <p className="flex items-center justify-center gap-1.5 text-theme-main">
           Crafted with <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400/30" /> by{' '}
-          <span className="font-bold text-theme-primary">{profile?.name || 'Alex Rivera'}</span>
+          <span className="font-bold text-theme-primary">
+            {profile?.footerCraftedBy || profile?.name || 'Alex Rivera'}
+          </span>
         </p>
         <p className="text-[11px] text-theme-sub">
-          &copy; {currentYear} {profile?.name || 'Alex Rivera'} • All rights reserved
+          &copy; {currentYear} {profile?.name || 'Alex Rivera'} • {profile?.footerCopyright || 'All rights reserved'}
         </p>
-        <p className="text-[10px] text-theme-sub/70">
-          Powered by React, Vite, Tailwind CSS & Supabase • Hosted on GitHub Pages
-        </p>
+        {profile?.showFooterCredits !== false && (
+          <p className="text-[10px] text-theme-sub/70">
+            {profile?.footerCredits || 'Powered by React, Vite, Tailwind CSS & Supabase • Hosted on GitHub Pages'}
+          </p>
+        )}
       </div>
 
       {/* Discreet Owner Login / Lock Button */}

@@ -49,6 +49,10 @@ export const DEFAULT_PROFILE_DATA = {
     bannerUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80',
     location: 'Tokyo & Neo-Metropolis',
     statusBadge: '⚡ Exploring Creative Frontiers',
+    footerCraftedBy: 'Alex Rivera',
+    footerCopyright: 'All rights reserved',
+    footerCredits: 'Powered by React, Vite, Tailwind CSS & Supabase • Hosted on GitHub Pages',
+    showFooterCredits: true,
   },
   links: [
     {
