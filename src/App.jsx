@@ -27,6 +27,7 @@ import FavoritesSection from './components/links/FavoritesSection.jsx';
 import SocialHub from './components/profile/SocialHub.jsx';
 import LiveCustomizerDrawer from './components/customizer/LiveCustomizerDrawer.jsx';
 import LoginModal from './components/customizer/LoginModal.jsx';
+import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 import {
   SlidersHorizontal,
   LogOut,
@@ -190,8 +191,10 @@ export default function App() {
       </main>
 
       {/* 4. Modals & Drawers */}
-      <LoginModal />
-      <LiveCustomizerDrawer />
+      <ErrorBoundary>
+        <LoginModal />
+        <LiveCustomizerDrawer />
+      </ErrorBoundary>
 
       {/* 5. Floating Owner Controls (ปรากฏเฉพาะเมื่อ isOwner === true) */}
       {isOwner && (

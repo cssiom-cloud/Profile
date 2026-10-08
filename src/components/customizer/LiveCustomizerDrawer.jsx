@@ -19,6 +19,7 @@ import LinksEditorTab from './LinksEditorTab.jsx';
 import FavoritesEditorTab from './FavoritesEditorTab.jsx';
 import MusicEditorTab from './MusicEditorTab.jsx';
 import LayoutThemeTab from './LayoutThemeTab.jsx';
+import ErrorBoundary from '../ui/ErrorBoundary.jsx';
 import {
   X,
   Save,
@@ -350,11 +351,13 @@ export default function LiveCustomizerDrawer() {
 
             {/* Tab Content Body (Scrollable Container) */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
-              {activeTab === 'profile' && <ProfileEditorTab />}
-              {activeTab === 'links' && <LinksEditorTab />}
-              {activeTab === 'favorites' && <FavoritesEditorTab />}
-              {activeTab === 'music' && <MusicEditorTab />}
-              {activeTab === 'theme' && <LayoutThemeTab />}
+              <ErrorBoundary>
+                {activeTab === 'profile' && <ProfileEditorTab />}
+                {activeTab === 'links' && <LinksEditorTab />}
+                {activeTab === 'favorites' && <FavoritesEditorTab />}
+                {activeTab === 'music' && <MusicEditorTab />}
+                {activeTab === 'theme' && <LayoutThemeTab />}
+              </ErrorBoundary>
 
               {/* Backup & Disaster Recovery Actions */}
               <section className="pt-6 mt-6 border-t border-theme-glow/20 space-y-3 font-mono text-xs">

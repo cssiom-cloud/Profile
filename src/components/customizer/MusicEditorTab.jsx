@@ -11,7 +11,7 @@
  * - Live Audio Stream & Turntable testing
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useProfileStore } from '../../store/useProfileStore.js';
 import ImageCropModal from '../ui/ImageCropModal.jsx';
 import { mediaStorage } from '../../lib/mediaStorage.js';
