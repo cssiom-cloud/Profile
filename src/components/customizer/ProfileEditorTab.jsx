@@ -171,11 +171,11 @@ export default function ProfileEditorTab() {
       {/* 1. Name & Handle */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="profile-name" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <User className="w-3.5 h-3.5 text-theme-primary" />
             <span>Display Name:</span>
           </label>
-          <input
+          <input id="profile-name"
             type="text"
             value={profile?.name || ''}
             onChange={(e) => handleChange('name', e.target.value)}
@@ -185,11 +185,11 @@ export default function ProfileEditorTab() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="profile-handle" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <AtSign className="w-3.5 h-3.5 text-theme-primary" />
             <span>Profile Handle:</span>
           </label>
-          <input
+          <input id="profile-handle"
             type="text"
             value={profile?.handle || ''}
             onChange={(e) => handleChange('handle', e.target.value)}
@@ -201,11 +201,12 @@ export default function ProfileEditorTab() {
 
       {/* 2. Status Badge Pill */}
       <div className="space-y-1.5">
-        <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+        <label htmlFor="profile-status" className="text-theme-sub flex items-center gap-1.5 font-bold">
           <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
           <span>Status Badge Pill / Tagline:</span>
         </label>
         <input
+          id="profile-status"
           type="text"
           value={profile?.statusBadge || ''}
           onChange={(e) => handleChange('statusBadge', e.target.value)}
@@ -217,7 +218,7 @@ export default function ProfileEditorTab() {
       {/* 3. Avatar Image URL & Upload/Crop */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="profile-avatar" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <Image className="w-3.5 h-3.5 text-theme-primary" />
             <span>Avatar Image:</span>
           </label>
@@ -284,7 +285,7 @@ export default function ProfileEditorTab() {
       {/* 4. Banner Cover Image URL & Upload/Crop */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="profile-banner" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <Layers className="w-3.5 h-3.5 text-theme-primary" />
             <span>Banner Cover:</span>
           </label>
@@ -337,6 +338,7 @@ export default function ProfileEditorTab() {
         />
 
         <input
+          id="profile-banner"
           type="url"
           value={profile?.bannerUrl || ''}
           onChange={(e) => {
@@ -350,11 +352,11 @@ export default function ProfileEditorTab() {
 
       {/* 5. Location */}
       <div className="space-y-1.5">
-        <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+        <label htmlFor="profile-location" className="text-theme-sub flex items-center gap-1.5 font-bold">
           <MapPin className="w-3.5 h-3.5 text-theme-primary" />
           <span>Location / Base:</span>
         </label>
-        <input
+        <input id="profile-location"
           type="text"
           value={profile?.location || ''}
           onChange={(e) => handleChange('location', e.target.value)}
@@ -366,7 +368,7 @@ export default function ProfileEditorTab() {
       {/* 6. Bio Description with Colorful Syntax Highlighting & BBCode Tags */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="profile-bio" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <AlignLeft className="w-3.5 h-3.5 text-theme-primary" />
             <span>Bio Description (ข้อความแนะนำตัว / โค้ด):</span>
           </label>
@@ -476,11 +478,12 @@ export default function ProfileEditorTab() {
 
       {/* 7. Personal Quote */}
       <div className="space-y-1.5">
-        <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+        <label htmlFor="profile-quote-philosophy" className="text-theme-sub flex items-center gap-1.5 font-bold">
           <Quote className="w-3.5 h-3.5 text-theme-primary" />
           <span>Personal Quote / Philosophy:</span>
         </label>
         <input
+          id="profile-quote-philosophy"
           type="text"
           value={profile?.quote || ''}
           onChange={(e) => handleChange('quote', e.target.value)}
@@ -497,11 +500,12 @@ export default function ProfileEditorTab() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="profile-footer-crafted-by" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <User className="w-3.5 h-3.5 text-theme-primary" />
             <span>Crafted By (สร้างโดย):</span>
           </label>
           <input
+            id="profile-footer-crafted-by"
             type="text"
             value={profile?.footerCraftedBy ?? ''}
             onChange={(e) => handleChange('footerCraftedBy', e.target.value)}
@@ -511,11 +515,12 @@ export default function ProfileEditorTab() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="profile-footer-copyright" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <FileText className="w-3.5 h-3.5 text-theme-primary" />
             <span>Copyright Notice (ข้อความลิขสิทธิ์):</span>
           </label>
           <input
+            id="profile-footer-copyright"
             type="text"
             value={profile?.footerCopyright ?? ''}
             onChange={(e) => handleChange('footerCopyright', e.target.value)}
@@ -526,12 +531,13 @@ export default function ProfileEditorTab() {
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+            <label htmlFor="profile-footer-credits" className="text-theme-sub flex items-center gap-1.5 font-bold">
               <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
               <span>Credits & Tech Stack (เครดิตเทคโนโลยี):</span>
             </label>
-            <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-theme-sub hover:text-white">
+            <label htmlFor="profile-show-footer-credits" className="flex items-center gap-1.5 cursor-pointer text-[11px] text-theme-sub hover:text-white">
               <input
+                id="profile-show-footer-credits"
                 type="checkbox"
                 checked={profile?.showFooterCredits !== false}
                 onChange={(e) => handleChange('showFooterCredits', e.target.checked)}
@@ -541,6 +547,7 @@ export default function ProfileEditorTab() {
             </label>
           </div>
           <input
+            id="profile-footer-credits"
             type="text"
             value={profile?.footerCredits ?? ''}
             onChange={(e) => handleChange('footerCredits', e.target.value)}
@@ -559,11 +566,12 @@ export default function ProfileEditorTab() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+            <label htmlFor="profile-owner-username" className="text-theme-sub flex items-center gap-1.5 font-bold">
               <User className="w-3.5 h-3.5 text-theme-primary" />
               <span>Username (ชื่อผู้ใช้):</span>
             </label>
             <input
+              id="profile-owner-username"
               type="text"
               value={authCreds.username}
               onChange={(e) => setAuthCreds((prev) => ({ ...prev, username: e.target.value }))}
@@ -574,7 +582,7 @@ export default function ProfileEditorTab() {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+              <label htmlFor="profile-owner-password" className="text-theme-sub flex items-center gap-1.5 font-bold">
                 <Key className="w-3.5 h-3.5 text-theme-primary" />
                 <span>Password (รหัสผ่าน):</span>
               </label>

@@ -459,12 +459,13 @@ export default function LayoutThemeTab() {
                 {/* 1. Primary Accent */}
                 <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-theme-glow/20">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <label className="relative cursor-pointer shrink-0">
+                    <label htmlFor="theme-color-primary" className="relative cursor-pointer shrink-0">
                       <div
                         className="w-7 h-7 rounded-lg border border-white/30 shadow-md transition-transform hover:scale-105"
                         style={{ background: customColors.primary }}
                       />
                       <input
+                        id="theme-color-primary"
                         type="color"
                         value={customColors.primary.startsWith('#') && customColors.primary.length === 7 ? customColors.primary : '#00f0ff'}
                         onChange={(e) => handleColorChange('primary', e.target.value)}
@@ -488,12 +489,13 @@ export default function LayoutThemeTab() {
                 {/* 2. Secondary Accent */}
                 <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-theme-glow/20">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <label className="relative cursor-pointer shrink-0">
+                    <label htmlFor="theme-color-secondary" className="relative cursor-pointer shrink-0">
                       <div
                         className="w-7 h-7 rounded-lg border border-white/30 shadow-md transition-transform hover:scale-105"
                         style={{ background: customColors.secondary }}
                       />
                       <input
+                        id="theme-color-secondary"
                         type="color"
                         value={customColors.secondary.startsWith('#') && customColors.secondary.length === 7 ? customColors.secondary : '#ff007f'}
                         onChange={(e) => handleColorChange('secondary', e.target.value)}
@@ -517,12 +519,13 @@ export default function LayoutThemeTab() {
                 {/* 3. Background Base */}
                 <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-theme-glow/20">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <label className="relative cursor-pointer shrink-0">
+                    <label htmlFor="theme-color-base" className="relative cursor-pointer shrink-0">
                       <div
                         className="w-7 h-7 rounded-lg border border-white/30 shadow-md transition-transform hover:scale-105"
                         style={{ background: customColors.base }}
                       />
                       <input
+                        id="theme-color-base"
                         type="color"
                         value={customColors.base.startsWith('#') && customColors.base.length === 7 ? customColors.base : '#090a0f'}
                         onChange={(e) => handleColorChange('base', e.target.value)}
@@ -546,12 +549,13 @@ export default function LayoutThemeTab() {
                 {/* 4. Surface Cards */}
                 <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-theme-glow/20">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <label className="relative cursor-pointer shrink-0">
+                    <label htmlFor="theme-color-surface" className="relative cursor-pointer shrink-0">
                       <div
                         className="w-7 h-7 rounded-lg border border-white/30 shadow-md transition-transform hover:scale-105"
                         style={{ background: customColors.surface }}
                       />
                       <input
+                        id="theme-color-surface"
                         type="color"
                         value={customColors.surface.startsWith('#') && customColors.surface.length === 7 ? customColors.surface : '#10141f'}
                         onChange={(e) => {
@@ -581,12 +585,13 @@ export default function LayoutThemeTab() {
                 {/* 5. Glow / Border */}
                 <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-theme-glow/20">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <label className="relative cursor-pointer shrink-0">
+                    <label htmlFor="theme-color-glow" className="relative cursor-pointer shrink-0">
                       <div
                         className="w-7 h-7 rounded-lg border border-white/30 shadow-md transition-transform hover:scale-105"
                         style={{ background: customColors.glow || customColors.primary }}
                       />
                       <input
+                        id="theme-color-glow"
                         type="color"
                         value={(customColors.glow && customColors.glow.startsWith('#') && customColors.glow.length === 7) ? customColors.glow : customColors.primary}
                         onChange={(e) => handleColorChange('glow', e.target.value)}
@@ -610,12 +615,13 @@ export default function LayoutThemeTab() {
                 {/* 6. Main Text */}
                 <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-theme-glow/20">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <label className="relative cursor-pointer shrink-0">
+                    <label htmlFor="theme-color-text-main" className="relative cursor-pointer shrink-0">
                       <div
                         className="w-7 h-7 rounded-lg border border-white/30 shadow-md transition-transform hover:scale-105"
                         style={{ background: customColors.textMain }}
                       />
                       <input
+                        id="theme-color-text-main"
                         type="color"
                         value={customColors.textMain.startsWith('#') && customColors.textMain.length === 7 ? customColors.textMain : '#f1f5f9'}
                         onChange={(e) => handleColorChange('textMain', e.target.value)}
@@ -639,12 +645,13 @@ export default function LayoutThemeTab() {
                 {/* 7. Sub Text */}
                 <div className="flex items-center justify-between p-2 rounded-xl bg-black/50 border border-theme-glow/20">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <label className="relative cursor-pointer shrink-0">
+                    <label htmlFor="theme-color-text-sub" className="relative cursor-pointer shrink-0">
                       <div
                         className="w-7 h-7 rounded-lg border border-white/30 shadow-md transition-transform hover:scale-105"
                         style={{ background: customColors.textSub }}
                       />
                       <input
+                        id="theme-color-text-sub"
                         type="color"
                         value={customColors.textSub.startsWith('#') && customColors.textSub.length === 7 ? customColors.textSub : '#94a3b8'}
                         onChange={(e) => handleColorChange('textSub', e.target.value)}

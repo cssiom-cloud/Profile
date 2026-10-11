@@ -165,7 +165,7 @@ export default function FavoritesEditorTab() {
       {/* 0. Section Header Banner Configuration */}
       <div className="p-3.5 rounded-2xl bg-black/40 border border-theme-glow/30 space-y-2.5">
         <div className="flex items-center justify-between">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="fav-section-banner" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <Layers className="w-3.5 h-3.5 text-theme-accent" />
             <span>Favorites Section Banner (แบนเนอร์หัวข้อส่วนนี้):</span>
           </label>
@@ -278,8 +278,9 @@ export default function FavoritesEditorTab() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-theme-sub">Title / Item Name:</label>
+          <label htmlFor="fav-new-title" className="text-theme-sub">Title / Item Name:</label>
           <input
+            id="fav-new-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -289,8 +290,9 @@ export default function FavoritesEditorTab() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-theme-sub">Subtitle / Full Description Notes:</label>
+          <label htmlFor="fav-new-subtitle" className="text-theme-sub">Subtitle / Full Description Notes:</label>
           <textarea
+            id="fav-new-subtitle"
             rows={2}
             value={subtitle}
             onChange={(e) => setSubtitle(e.target.value)}
@@ -302,7 +304,7 @@ export default function FavoritesEditorTab() {
         {/* Card Banner Image */}
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-theme-sub flex items-center gap-1 font-bold">
+            <label htmlFor="fav-new-banner-url" className="text-theme-sub flex items-center gap-1 font-bold">
               <ImageIcon className="w-3.5 h-3.5 text-theme-accent" />
               <span>Card Banner Image (แบนเนอร์การ์ด):</span>
             </label>
@@ -337,9 +339,10 @@ export default function FavoritesEditorTab() {
             }}
           />
           <input
-            type="url"
-            value={bannerUrl}
-            onChange={(e) => setBannerUrl(e.target.value)}
+              id="fav-new-banner-url"
+              type="url"
+              value={bannerUrl}
+              onChange={(e) => setBannerUrl(e.target.value)}
             placeholder="https://images.unsplash.com/... or upload banner pic above"
             className="w-full px-3 py-1.5 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
           />
@@ -347,11 +350,12 @@ export default function FavoritesEditorTab() {
 
         {/* External Link */}
         <div className="space-y-1">
-          <label className="text-theme-sub flex items-center gap-1">
+          <label htmlFor="fav-new-link-url" className="text-theme-sub flex items-center gap-1">
             <LinkIcon className="w-3 h-3 text-theme-accent" />
             <span>Link URL (Optional external link):</span>
           </label>
           <input
+            id="fav-new-link-url"
             type="url"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
@@ -363,8 +367,9 @@ export default function FavoritesEditorTab() {
         <div className="grid grid-cols-3 gap-2">
           {/* Category */}
           <div className="space-y-1">
-            <label className="text-theme-sub">Category:</label>
+            <label htmlFor="fav-new-category" className="text-theme-sub">Category:</label>
             <select
+              id="fav-new-category"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-2 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
@@ -379,8 +384,9 @@ export default function FavoritesEditorTab() {
 
           {/* Badge Pill */}
           <div className="space-y-1">
-            <label className="text-theme-sub">Badge Pill:</label>
+            <label htmlFor="fav-new-badge" className="text-theme-sub">Badge Pill:</label>
             <input
+              id="fav-new-badge"
               type="text"
               value={badge}
               onChange={(e) => setBadge(e.target.value)}
@@ -392,7 +398,7 @@ export default function FavoritesEditorTab() {
           {/* Icon or Custom Cropped Picture */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="text-theme-sub">Icon / Image:</label>
+              <label htmlFor="fav-new-icon" className="text-theme-sub">Icon / Image:</label>
               <button
                 type="button"
                 onClick={() => addFileInputRef.current?.click()}
@@ -557,8 +563,9 @@ export default function FavoritesEditorTab() {
               {isEditing && (
                 <div className="pt-2 mt-2 border-t border-theme-glow/15 space-y-2.5 animate-fade-in">
                   <div className="space-y-1">
-                    <label className="text-[10px] text-theme-sub">Title:</label>
+                    <label htmlFor={`fav-title-${fav.id}`} className="text-[10px] text-theme-sub">Title:</label>
                     <input
+                      id={`fav-title-${fav.id}`}
                       type="text"
                       value={fav.title || ''}
                       onChange={(e) => updateFavorite(fav.id, { title: e.target.value })}
@@ -567,8 +574,9 @@ export default function FavoritesEditorTab() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] text-theme-sub">Subtitle / Full Description Notes:</label>
+                    <label htmlFor={`fav-subtitle-${fav.id}`} className="text-[10px] text-theme-sub">Subtitle / Full Description Notes:</label>
                     <textarea
+                      id={`fav-subtitle-${fav.id}`}
                       rows={2}
                       value={fav.subtitle || ''}
                       onChange={(e) => updateFavorite(fav.id, { subtitle: e.target.value })}
@@ -607,11 +615,12 @@ export default function FavoritesEditorTab() {
 
                   {/* Edit Link URL */}
                   <div className="space-y-1">
-                    <label className="text-[10px] text-theme-sub flex items-center gap-1">
+                    <label htmlFor={`fav-link-url-${fav.id}`} className="text-[10px] text-theme-sub flex items-center gap-1">
                       <LinkIcon className="w-2.5 h-2.5 text-theme-accent" />
                       <span>Link URL:</span>
                     </label>
                     <input
+                      id={`fav-link-url-${fav.id}`}
                       type="url"
                       value={fav.linkUrl || ''}
                       onChange={(e) => updateFavorite(fav.id, { linkUrl: e.target.value })}
@@ -622,8 +631,9 @@ export default function FavoritesEditorTab() {
 
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1">
-                      <label className="text-[10px] text-theme-sub">Category:</label>
+                      <label htmlFor={`fav-category-${fav.id}`} className="text-[10px] text-theme-sub">Category:</label>
                       <select
+                        id={`fav-category-${fav.id}`}
                         value={fav.category || 'tech'}
                         onChange={(e) => updateFavorite(fav.id, { category: e.target.value })}
                         className="w-full px-2 py-1.5 rounded-lg bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-accent text-[11px]"
@@ -637,8 +647,9 @@ export default function FavoritesEditorTab() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] text-theme-sub">Badge:</label>
+                      <label htmlFor={`fav-badge-${fav.id}`} className="text-[10px] text-theme-sub">Badge:</label>
                       <input
+                        id={`fav-badge-${fav.id}`}
                         type="text"
                         value={fav.badge || ''}
                         onChange={(e) => updateFavorite(fav.id, { badge: e.target.value })}
@@ -648,7 +659,7 @@ export default function FavoritesEditorTab() {
 
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] text-theme-sub">Icon / Pic:</label>
+                        <label htmlFor={`fav-icon-${fav.id}`} className="text-[10px] text-theme-sub">Icon / Pic:</label>
                         <button
                           type="button"
                           onClick={() => {
