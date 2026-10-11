@@ -124,7 +124,7 @@ export default function App() {
     return (
       <div
         id="smoke-loading"
-        className="flex items-center justify-center min-h-screen bg-black text-theme-primary font-mono"
+        className="flex items-center justify-center min-h-[100dvh] bg-black text-theme-primary font-mono"
       >
         <div className="flex flex-col items-center gap-3 animate-pulse">
           <div className="w-8 h-8 border-2 border-theme-primary border-t-transparent rounded-full animate-spin" />
@@ -139,7 +139,7 @@ export default function App() {
   return (
     <div
       id="m1-smoke-container"
-      className="relative min-h-screen bg-theme-base/80 text-theme-main transition-colors duration-500 font-sans overflow-x-hidden selection:bg-theme-primary selection:text-black"
+      className="relative min-h-[100dvh] bg-theme-base/80 text-theme-main transition-colors duration-500 font-sans overflow-x-hidden selection:bg-theme-primary selection:text-black"
     >
       {/* 1. Interactive Particle Canvas Background Layer (Fixed & Non-blocking) */}
       <ParticleBackground density={currentDensity} />
