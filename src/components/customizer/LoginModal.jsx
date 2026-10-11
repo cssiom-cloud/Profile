@@ -420,7 +420,7 @@ export default function LoginModal() {
             {/* Unified Owner Sign In Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-theme-sub flex items-center justify-between">
+                  <label htmlFor="login-username" className="text-xs font-mono text-theme-sub flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5 text-theme-primary" />
                       Username or Supabase Email:
@@ -428,6 +428,7 @@ export default function LoginModal() {
                     <span className="text-[10px] text-theme-primary font-mono">Owner Mode</span>
                   </label>
                   <input
+                    id="login-username"
                     ref={usernameInputRef}
                     type="text"
                     autoComplete="username"
@@ -443,7 +444,7 @@ export default function LoginModal() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-theme-sub flex items-center justify-between">
+                  <label htmlFor="login-password" className="text-xs font-mono text-theme-sub flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <KeyRound className="w-3.5 h-3.5 text-theme-primary" />
                       Password (รหัสผ่าน):
@@ -458,6 +459,7 @@ export default function LoginModal() {
                   </label>
                   <div className="relative">
                     <input
+                      id="login-password"
                       ref={passwordInputRef}
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="current-password"

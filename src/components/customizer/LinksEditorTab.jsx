@@ -168,8 +168,9 @@ export default function LinksEditorTab() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-theme-sub">Link Title:</label>
+          <label htmlFor="new-link-title" className="text-theme-sub">Link Title:</label>
           <input
+            id="new-link-title"
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
@@ -179,8 +180,9 @@ export default function LinksEditorTab() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-theme-sub">Destination URL:</label>
+          <label htmlFor="new-link-url" className="text-theme-sub">Destination URL:</label>
           <input
+            id="new-link-url"
             type="url"
             value={newUrl}
             onChange={(e) => setNewUrl(e.target.value)}
@@ -192,8 +194,9 @@ export default function LinksEditorTab() {
         <div className="grid grid-cols-2 gap-2">
           {/* Category */}
           <div className="space-y-1">
-            <label className="text-theme-sub">Category:</label>
+            <label htmlFor="new-link-category" className="text-theme-sub">Category:</label>
             <select
+              id="new-link-category"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary"
@@ -208,11 +211,12 @@ export default function LinksEditorTab() {
 
           {/* Icon Selector */}
           <div className="space-y-1">
-            <label className="text-theme-sub flex items-center gap-1">
+            <label htmlFor="new-link-icon" className="text-theme-sub flex items-center gap-1">
               <span>Icon:</span>
               <DynamicIcon name={newIcon} className="w-3 h-3 text-theme-primary" />
             </label>
             <select
+              id="new-link-icon"
               value={newIcon}
               onChange={(e) => setNewIcon(e.target.value)}
               className="w-full px-3 py-2 rounded-xl bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary"
@@ -384,8 +388,9 @@ export default function LinksEditorTab() {
                   <div className="grid grid-cols-2 gap-2">
                     {/* Category Selector */}
                     <div className="space-y-1">
-                      <label className="text-[10px] text-theme-sub">Category:</label>
+                      <label htmlFor={`link-category-${link.id}`} className="text-[10px] text-theme-sub">Category:</label>
                       <select
+                        id={`link-category-${link.id}`}
                         value={link.category || 'social'}
                         onChange={(e) => updateLink(link.id, { category: e.target.value })}
                         className="w-full px-2 py-1.5 rounded-lg bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary text-[11px]"
@@ -400,8 +405,9 @@ export default function LinksEditorTab() {
 
                     {/* Icon Selector */}
                     <div className="space-y-1">
-                      <label className="text-[10px] text-theme-sub">Icon:</label>
+                      <label htmlFor={`link-icon-${link.id}`} className="text-[10px] text-theme-sub">Icon:</label>
                       <select
+                        id={`link-icon-${link.id}`}
                         value={link.icon || 'Globe'}
                         onChange={(e) => updateLink(link.id, { icon: e.target.value })}
                         className="w-full px-2 py-1.5 rounded-lg bg-black/60 border border-theme-glow/30 text-white focus:outline-none focus:border-theme-primary text-[11px]"

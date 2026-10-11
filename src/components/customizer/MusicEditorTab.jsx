@@ -392,7 +392,7 @@ export default function MusicEditorTab() {
       {/* SMART LINK PASTE & AUTO-FETCH BAR */}
       <section className="p-3.5 rounded-2xl bg-black/40 border border-theme-glow/30 space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="music-smart-link" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <Sparkles className="w-3.5 h-3.5 text-theme-primary" />
             <span>Smart Music Link (YouTube / Spotify):</span>
           </label>
@@ -426,7 +426,7 @@ export default function MusicEditorTab() {
       {/* 1. Track Title & Artist */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="music-title" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <Music className="w-3.5 h-3.5 text-theme-primary" />
             <span>Track Title:</span>
           </label>
@@ -440,7 +440,7 @@ export default function MusicEditorTab() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="music-artist" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <Disc className="w-3.5 h-3.5 text-theme-primary" />
             <span>Artist Name:</span>
           </label>
@@ -457,7 +457,7 @@ export default function MusicEditorTab() {
       {/* 2. Audio Stream URL & Local Audio Upload */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="music-audio-url" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <Radio className="w-3.5 h-3.5 text-theme-primary" />
             <span>Audio Source (MP3 Stream or File):</span>
           </label>
@@ -649,7 +649,7 @@ export default function MusicEditorTab() {
       {/* 3. Album Cover Artwork URL & Upload/Crop */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="music-cover-url" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <Image className="w-3.5 h-3.5 text-theme-primary" />
             <span>Album Cover Artwork:</span>
           </label>
@@ -784,7 +784,7 @@ export default function MusicEditorTab() {
       {/* 5. External Streaming Links */}
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="music-spotify-url" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <LinkIcon className="w-3.5 h-3.5 text-theme-primary" />
             <span>Spotify Track / Playlist URL:</span>
           </label>
@@ -798,7 +798,7 @@ export default function MusicEditorTab() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-theme-sub flex items-center gap-1.5 font-bold">
+          <label htmlFor="music-youtube-url" className="text-theme-sub flex items-center gap-1.5 font-bold">
             <LinkIcon className="w-3.5 h-3.5 text-theme-primary" />
             <span>YouTube Music / Video URL:</span>
           </label>
