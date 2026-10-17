@@ -292,11 +292,14 @@ export default function ColoredBio({ bio, handle = 'dev', className = '' }) {
   // Handle Copy Code action
   const handleCopy = (e) => {
     e?.stopPropagation();
-    if (navigator?.clipboard) {
-      navigator.clipboard.writeText(bio);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(bio).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }).catch(() => {});
+      }
+    } catch {}
   };
 
   // Clean filename for the IDE tab

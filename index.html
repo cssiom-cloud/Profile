@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="cyber-neon">
+<html lang="en" data-theme="cyber-neon" style="background-color: #06080e; color: #ffffff;">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -8,6 +8,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <meta name="description" content="Maiddress ( DEV ) - Dynamic Creative Profile & Link Hub" />
     <meta name="theme-color" content="#090a0f" />
+
+    <style>
+      html, body {
+        background-color: #06080e !important;
+        color: #ffffff !important;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+
+    <script>
+      (function() {
+        var p = window.location.pathname;
+        if (p.endsWith('/Profile')) {
+          window.location.replace(p + '/' + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
 
     <!-- Google Fonts: Inter & JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
