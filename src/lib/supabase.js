@@ -54,10 +54,11 @@ export const isSupabaseConfigured = () => {
     return false;
   }
 
-  // Check for placeholder strings
+  // Check for placeholder or decommissioned URLs
   const isPlaceholderUrl =
     url.includes('YOUR_SUPABASE_URL') ||
     url.includes('your-project-id.supabase.co') ||
+    url.includes('fhhfieecrbcvbbpsoyah.supabase.co') ||
     url === 'https://example.supabase.co';
 
   const isPlaceholderKey =

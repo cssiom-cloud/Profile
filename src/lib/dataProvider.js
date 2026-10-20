@@ -289,7 +289,7 @@ export const dataProvider = {
           ]);
 
           return { profileRecord, linksRes, favsRes, settingsRes };
-        })(), 8000);
+        })(), 1500);
 
         if (cloudResult && cloudResult.profileRecord) {
           const { profileRecord, linksRes, favsRes, settingsRes } = cloudResult;

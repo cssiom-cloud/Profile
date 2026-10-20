@@ -31,3 +31,7 @@ Thumbs.db
 
 # Agents internal workspace
 .agents/
+
+# Impeccable binaries and codex cache
+.codex/
+**/scripts/bin/

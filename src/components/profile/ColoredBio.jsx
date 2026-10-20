@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/components/profile/ColoredBio.jsx
  * Dynamic Colorful Bio Renderer & Cyber IDE Code Highlighter
  * 
@@ -97,7 +97,7 @@ function highlightCodeLine(line, lineIndex) {
         return (
           <span
             key={idx}
-            className="text-cyan-300 font-semibold drop-shadow-[0_0_6px_rgba(0,240,255,0.4)]"
+            className="text-cyan-300 font-semibold "
           >
             {token}
           </span>
@@ -122,7 +122,7 @@ function highlightCodeLine(line, lineIndex) {
     // Booleans / Nil
     if (/^(true|false|null|nil)$/i.test(token)) {
       return (
-        <span key={idx} className="text-purple-400 font-bold">
+        <span key={idx} className="text-sky-300 font-bold">
           {token}
         </span>
       );
@@ -205,7 +205,7 @@ export function parseRichColorText(text) {
           lineElements.push(
             <span
               key={`grad-${lineIdx}-${match.index}`}
-              className="bg-gradient-to-r from-theme-primary via-theme-secondary to-theme-accent bg-clip-text text-transparent font-bold animate-pulse"
+              className="text-theme-primary font-bold"
             >
               {content}
             </span>
@@ -313,17 +313,15 @@ export default function ColoredBio({ bio, handle = 'dev', className = '' }) {
 
     return (
       <div
-        className={`relative my-2.5 rounded-2xl overflow-hidden bg-[#07090e]/90 backdrop-blur-xl border border-theme-glow/30 shadow-[0_4px_24px_rgba(0,0,0,0.5)] font-mono text-xs max-w-3xl transition-all duration-300 hover:border-theme-primary/50 group ${className}`}
+        className={`relative my-2.5 rounded-2xl overflow-hidden bg-[#07090e]/90 backdrop-blur-xl border border-white/10 shadow-xl font-mono text-xs max-w-3xl transition-all duration-300 hover:border-white/20 ${className}`}
       >
         {/* Terminal Header Bar */}
         <div className="flex items-center justify-between px-3.5 py-2 bg-black/70 border-b border-theme-glow/20 select-none">
-          {/* macOS window dots */}
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/90 border border-[#e0443e]/80 inline-block shadow-sm" />
-            <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]/90 border border-[#dea123]/80 inline-block shadow-sm" />
-            <span className="w-2.5 h-2.5 rounded-full bg-[#27c93f]/90 border border-[#1aab29]/80 inline-block shadow-sm" />
-            <span className="ml-2 text-[11px] text-theme-sub flex items-center gap-1 font-semibold opacity-80">
-              <Terminal className="w-3 h-3 text-theme-primary" />
+          {/* Spec Header */}
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-theme-primary/80" />
+            <span className="text-[11px] text-theme-main/90 font-mono font-medium tracking-wide flex items-center gap-1.5">
+              <Terminal className="w-3.5 h-3.5 text-theme-primary" />
               <span>{fileName}</span>
             </span>
           </div>
@@ -369,7 +367,7 @@ export default function ColoredBio({ bio, handle = 'dev', className = '' }) {
         </div>
 
         {/* Bottom subtle glowing edge */}
-        <div className="h-0.5 w-full bg-gradient-to-r from-theme-primary/30 via-theme-secondary/30 to-theme-accent/30 opacity-40 group-hover:opacity-100 transition-opacity" />
+        
       </div>
     );
   }

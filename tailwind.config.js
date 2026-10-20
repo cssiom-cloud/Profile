@@ -21,12 +21,12 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       boxShadow: {
-        glow: '0 0 20px -3px var(--border-glow)',
-        'glow-lg': '0 0 35px -5px var(--border-glow)',
+        glow: '0 4px 14px -1px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.3)',
+        'glow-lg': '0 10px 25px -3px rgba(0, 0, 0, 0.5), 0 4px 10px -2px rgba(0, 0, 0, 0.35)',
         glass: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
       },
       animation: {

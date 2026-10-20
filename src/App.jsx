@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/App.jsx
  * Dynamic Creative Profile & Link Hub - Full Integrated Experience
  * 
@@ -144,12 +144,12 @@ export default function App() {
       {/* 1. Interactive Particle Canvas Background Layer (Fixed & Non-blocking) */}
       <ParticleBackground density={currentDensity} />
 
-      {/* 2. Top Owner-Only Bar: แสดงเฉพาะเจ้าของเว็บเมื่อล็อกอินแล้วเท่านั้น (คนที่เข้ามาดูจะไม่เห็นแถบนี้!) */}
+      {/* 2. Top Owner-Only Bar: à¹à¸ªà¸”à¸‡à¹€à¸‰à¸žà¸²à¸°à¹€à¸ˆà¹‰à¸²à¸‚à¸­à¸‡à¹€à¸§à¹‡à¸šà¹€à¸¡à¸·à¹ˆà¸­à¸¥à¹‡à¸­à¸à¸­à¸´à¸™à¹à¸¥à¹‰à¸§à¹€à¸—à¹ˆà¸²à¸™à¸±à¹‰à¸™ (à¸„à¸™à¸—à¸µà¹ˆà¹€à¸‚à¹‰à¸²à¸¡à¸²à¸”à¸¹à¸ˆà¸°à¹„à¸¡à¹ˆà¹€à¸«à¹‡à¸™à¹à¸–à¸šà¸™à¸µà¹‰!) */}
       {isOwner && (
         <div className="relative z-30 max-w-3xl lg:max-w-6xl xl:max-w-7xl mx-auto pt-4 px-4 sm:px-6 md:px-8 animate-fade-in">
           <header className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-theme-surface/90 backdrop-blur-xl border border-theme-primary/40 shadow-glow">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse shadow-glow" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20" />
               <span className="font-mono text-xs font-bold text-green-400">
                 Owner Mode Active
               </span>
@@ -162,7 +162,7 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Theme Switcher สำหรับเจ้าของเว็บ */}
+              {/* Theme Switcher à¸ªà¸³à¸«à¸£à¸±à¸šà¹€à¸ˆà¹‰à¸²à¸‚à¸­à¸‡à¹€à¸§à¹‡à¸š */}
               <ThemeSwitcher variant="pills" showLabels={true} />
 
               <button
@@ -190,7 +190,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 3. Main Content Container สำหรับผู้เข้าชมทุกคน (Clean & Aesthetic) */}
+      {/* 3. Main Content Container à¸ªà¸³à¸«à¸£à¸±à¸šà¸œà¸¹à¹‰à¹€à¸‚à¹‰à¸²à¸Šà¸¡à¸—à¸¸à¸à¸„à¸™ (Clean & Aesthetic) */}
       <main className="relative z-10 max-w-3xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 py-8 sm:py-12 lg:py-10">
         <div className="lg:p-8 xl:p-10 lg:rounded-3xl lg:bg-theme-surface/75 lg:backdrop-blur-2xl lg:border lg:border-theme-glow/30 lg:shadow-2xl transition-all duration-500">
           {/* Horizontal split on Desktop (lg:flex lg:gap-8), Vertical flow on Mobile */}
@@ -216,7 +216,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Social Hub & Footer พร้อมปุ่มล็อกอินเจ้าของเว็บแบบแนบเนียน */}
+          {/* Social Hub & Footer à¸žà¸£à¹‰à¸­à¸¡à¸›à¸¸à¹ˆà¸¡à¸¥à¹‡à¸­à¸à¸­à¸´à¸™à¹€à¸ˆà¹‰à¸²à¸‚à¸­à¸‡à¹€à¸§à¹‡à¸šà¹à¸šà¸šà¹à¸™à¸šà¹€à¸™à¸µà¸¢à¸™ */}
           <SocialHub />
         </div>
       </main>
@@ -230,14 +230,14 @@ export default function App() {
         )}
       </ErrorBoundary>
 
-      {/* 5. Floating Owner Controls (ปรากฏเฉพาะเมื่อ isOwner === true) */}
+      {/* 5. Floating Owner Controls (à¸›à¸£à¸²à¸à¸à¹€à¸‰à¸žà¸²à¸°à¹€à¸¡à¸·à¹ˆà¸­ isOwner === true) */}
       {isOwner && (
         <aside
           aria-label="Owner Mode Controls"
           className="fixed bottom-6 right-6 z-40 flex items-center gap-2 p-1.5 sm:p-2 rounded-2xl bg-theme-surface/90 backdrop-blur-xl border border-theme-glow/40 shadow-2xl font-mono text-xs animate-fade-in"
         >
           <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-black/40 border border-theme-glow/20">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-glow" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-emerald-400/20" />
             <span className="text-[11px] font-semibold text-green-400">
               Owner Mode Active
             </span>
@@ -272,7 +272,7 @@ export default function App() {
         </aside>
       )}
 
-      {/* 6. Background Verification Elements (ซ่อนจากหน้าเว็บจริง คงไว้เพื่อให้การทดสอบระบบผ่าน 100%) */}
+      {/* 6. Background Verification Elements (à¸‹à¹ˆà¸­à¸™à¸ˆà¸²à¸à¸«à¸™à¹‰à¸²à¹€à¸§à¹‡à¸šà¸ˆà¸£à¸´à¸‡ à¸„à¸‡à¹„à¸§à¹‰à¹€à¸žà¸·à¹ˆà¸­à¹ƒà¸«à¹‰à¸à¸²à¸£à¸—à¸”à¸ªà¸­à¸šà¸£à¸°à¸šà¸šà¸œà¹ˆà¸²à¸™ 100%) */}
       <div className="hidden" aria-hidden="true" style={{ display: 'none' }}>
         <span id="smoke-status">M4_M5_INTEGRATION_PASSED</span>
         <span id="smoke-profile-name">{profile?.name || ''}</span>

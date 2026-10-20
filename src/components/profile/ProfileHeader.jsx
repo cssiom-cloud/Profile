@@ -179,42 +179,21 @@ export default function ProfileHeader({ profile: propProfile, className = '' }) 
       <div className="relative px-5 sm:px-8 pb-8 -mt-16 sm:-mt-20 md:-mt-24 z-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-6">
           
-          {/* Avatar Container with Animated Glowing Aura */}
+          {/* Avatar Container with Clean Natural Depth */}
           <div className="relative group flex-shrink-0">
-            {/* Dynamic Breathing Glow Aura Layer */}
-            <motion.div
-              animate={{
-                scale: [1, 1.05, 1],
-                opacity: [0.45, 0.8, 0.45],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-              className="absolute -inset-1 rounded-full pointer-events-none -z-10"
-              style={{
-                background: 'radial-gradient(circle, var(--accent-primary) 0%, var(--border-glow) 70%, transparent 100%)',
-                filter: 'blur(10px)',
-              }}
-            />
-
-            {/* Avatar Frame with Border & Theme Shadow */}
-            <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full p-1 bg-gradient-to-b from-theme-primary/80 via-theme-surface to-theme-glow/30 shadow-[0_0_25px_var(--border-glow)] overflow-hidden">
+            {/* Avatar Frame with Border & Depth */}
+            <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full p-1 bg-theme-surface/90 border border-white/15 shadow-2xl overflow-hidden">
               {profile.avatarUrl && !avatarError ? (
                 <img
                   src={profile.avatarUrl}
                   alt={`${profile.name}'s profile avatar`}
                   onError={() => setAvatarError(true)}
-                  className="w-full h-full rounded-full object-cover bg-theme-surface border-2 border-theme-base select-none transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-full rounded-full object-cover bg-theme-surface border border-white/10 select-none transition-transform duration-500 group-hover:scale-105"
                 />
               ) : (
                 /* Fallback Initials Avatar (T2.8 Compliance) */
                 <div
-                  className="w-full h-full rounded-full flex flex-col items-center justify-center border-2 border-theme-base select-none shadow-inner"
-                  style={{
-                    background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--bg-surface) 50%, var(--accent-secondary) 100%)',
-                  }}
+                  className="w-full h-full rounded-full flex flex-col items-center justify-center border border-white/10 select-none shadow-inner bg-theme-surface"
                   title={profile.name}
                 >
                   <span className="font-mono font-extrabold text-2xl sm:text-4xl text-theme-main tracking-wider drop-shadow-md">
@@ -226,17 +205,16 @@ export default function ProfileHeader({ profile: propProfile, className = '' }) 
             </div>
           </div>
 
-          {/* Status Badge Pill (Micro-Glow Animation) */}
+          {/* Status Badge Pill */}
           {profile.statusBadge && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-theme-surface/90 backdrop-blur-md border border-theme-glow/40 text-theme-main text-xs font-mono shadow-[0_0_16px_var(--border-glow)] hover:border-theme-primary/70 transition-all sm:mb-2 max-w-full"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-theme-surface/90 backdrop-blur-md border border-white/10 text-theme-main text-xs font-mono shadow-md hover:border-theme-primary/40 transition-all sm:mb-2 max-w-full"
             >
-              <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+              <span className="relative flex h-2 w-2 flex-shrink-0">
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-sm" />
               </span>
               <span className="truncate max-w-[250px] sm:max-w-[360px] font-medium tracking-tight">
                 {profile.statusBadge}
@@ -293,7 +271,7 @@ export default function ProfileHeader({ profile: propProfile, className = '' }) 
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15, duration: 0.4 }}
-              className="relative mt-4 p-4 rounded-2xl bg-theme-surface/40 backdrop-blur-md border border-theme-glow/30 border-l-4 border-l-theme-primary shadow-glass overflow-hidden max-w-3xl"
+              className="relative mt-4 p-4 rounded-2xl bg-theme-surface/60 backdrop-blur-md border border-white/10 shadow-lg overflow-hidden max-w-3xl"
             >
               <div className="flex items-start gap-3">
                 <Quote className="w-5 h-5 text-theme-primary/70 flex-shrink-0 mt-0.5 rotate-180" />
