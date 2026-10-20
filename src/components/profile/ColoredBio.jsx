@@ -1,4 +1,4 @@
-﻿/**
+/**
  * src/components/profile/ColoredBio.jsx
  * Dynamic Colorful Bio Renderer & Cyber IDE Code Highlighter
  * 
@@ -140,7 +140,11 @@ function highlightCodeLine(line, lineIndex) {
     return <span key={idx} className="text-theme-main">{token}</span>;
   });
 
-  return <div key={lineIndex} className="leading-relaxed">{renderedTokens}</div>;
+  return (
+    <span key={lineIndex} className="inline-block leading-relaxed whitespace-pre font-mono">
+      {renderedTokens}
+    </span>
+  );
 }
 
 /**
@@ -347,22 +351,22 @@ export default function ColoredBio({ bio, handle = 'dev', className = '' }) {
           </button>
         </div>
 
-        {/* Code Content Container with line numbers */}
-        <div className="p-3.5 overflow-x-auto text-[11px] sm:text-xs leading-relaxed selection:bg-theme-primary/30">
-          <div className="flex">
-            {/* Subtle line numbers */}
-            <div className="select-none text-right pr-3.5 text-slate-600 border-r border-slate-800/80 shrink-0 font-mono">
-              {lines.map((_, i) => (
-                <div key={i} className="leading-relaxed">
-                  {i + 1}
-                </div>
-              ))}
-            </div>
+        {/* Code Content Container with unified row-by-row line numbering */}
+        <div className="p-2.5 sm:p-3.5 overflow-x-auto text-[10.5px] sm:text-xs leading-relaxed selection:bg-theme-primary/30 font-mono">
+          <div className="min-w-fit space-y-0.5">
+            {lines.map((line, idx) => (
+              <div key={idx} className="flex items-start hover:bg-white/[0.03] transition-colors rounded px-1">
+                {/* Fixed Line Number strictly anchored to this row */}
+                <span className="select-none text-right pr-2.5 sm:pr-3 text-slate-600 border-r border-slate-800/80 shrink-0 w-6 sm:w-7 font-mono text-[10px] sm:text-[11px] pt-[1px]">
+                  {idx + 1}
+                </span>
 
-            {/* Syntax-highlighted code lines */}
-            <div className="pl-3.5 min-w-0 flex-1 font-mono">
-              {lines.map((line, idx) => highlightCodeLine(line, idx))}
-            </div>
+                {/* Syntax-highlighted code line */}
+                <div className="pl-2.5 sm:pl-3 min-w-0 flex-1 font-mono whitespace-pre overflow-visible">
+                  {highlightCodeLine(line, idx)}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
