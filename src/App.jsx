@@ -1,4 +1,4 @@
-﻿/**
+/**
  * src/App.jsx
  * Dynamic Creative Profile & Link Hub - Full Integrated Experience
  * 
@@ -28,6 +28,7 @@ import SocialHub from './components/profile/SocialHub.jsx';
 import LiveCustomizerDrawer from './components/customizer/LiveCustomizerDrawer.jsx';
 import LoginModal from './components/customizer/LoginModal.jsx';
 import SitePreloader from './components/ui/SitePreloader.jsx';
+import InAppBrowserNotice from './components/ui/InAppBrowserNotice.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 import {
   SlidersHorizontal,
@@ -223,6 +224,7 @@ export default function App() {
 
       {/* 4. Modals & Drawers */}
       <ErrorBoundary>
+        <InAppBrowserNotice />
         <LoginModal />
         <LiveCustomizerDrawer />
         {showPreloader && settings?.enableEnterScreen !== false && (
