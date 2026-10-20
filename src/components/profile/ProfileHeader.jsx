@@ -182,7 +182,7 @@ export default function ProfileHeader({ profile: propProfile, className = '' }) 
           {/* Avatar Container with Clean Natural Depth */}
           <div className="relative group flex-shrink-0">
             {/* Avatar Frame with Border & Depth */}
-            <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full p-1 bg-theme-surface/90 border border-white/15 shadow-2xl overflow-hidden">
+            <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full p-1 bg-theme-surface/90 border-2 border-theme-primary/50 shadow-xl overflow-hidden ring-4 ring-theme-primary/20">
               {profile.avatarUrl && !avatarError ? (
                 <img
                   src={profile.avatarUrl}
@@ -211,7 +211,7 @@ export default function ProfileHeader({ profile: propProfile, className = '' }) 
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-theme-surface/90 backdrop-blur-md border border-white/10 text-theme-main text-xs font-mono shadow-md hover:border-theme-primary/40 transition-all sm:mb-2 max-w-full"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-theme-surface/90 backdrop-blur-md border border-theme-primary/50 text-theme-main text-xs font-mono shadow-md hover:border-theme-primary transition-all sm:mb-2 max-w-full"
             >
               <span className="relative flex h-2 w-2 flex-shrink-0">
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-sm" />
